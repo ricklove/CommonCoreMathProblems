@@ -1,0 +1,144 @@
+﻿# OA Domain
+
+## 1.OA
+
+VARIABLES:
+x = [0,20]
+y = [0,20]
+sum = x+y [0,20]
+
+name = {Matthew<he>, Lydia<she>, Emily<she>, Caleb<he>}
+obj = {ball(s), car(s)}
+adj = {red, blue, green; big, small}
+bag = {box(es), bag(s), sack(s)}
+
+var = {x,y,a,b}
+
+
+### 1.0A.A.1
+
+#### Equation
+
+QUESTION:
+What is the value of {var}? 
+|| Find the value of {var}:
+
+{x} + {var} = {sum}
+|| {var} + {x} = {sum}
+
+ANSWER:
+{y}
+
+QUESTION:
+What is the value of {var}? 
+|| Find the value of {var}:
+
+{x} + {y} = {var}
+
+ANSWER:
+{sum}
+
+#### Adding To
+
+##### Unknown Sum
+
+QUESTION:
+{name} had {x} {objs}. He got {y} more {objs}. How many {objs} does {name} have now?
+|| {name} had {x} {objs} in a {bag}. He put {y} more {objs} in the {bag}. How many {objs} are in the {bag} now.
+
+ANSWER:
+{sum} {objs}
+
+##### Unknown Start
+
+QUESTION:
+{name} had some {objs}. He got {y} more {objs} for {name's} birthday. Then, he had {sum} {objs} altogether. How many {objs} did he have at the start?
+|| {name} had some {objs} in a {bag}. He put {y} more {objs} in the {bag}. Then, he had {sum} {objs} in the {bag} altogether. How many {objs} did he have in the {bag} at the start?
+
+ANSWER:
+{x} {objs}
+
+##### Unknown Change
+
+QUESTION:
+{name} had {x} {objs}. He got some more {objs} for {name's} birthday. Then, he had {sum} {objs} altogether. How many {objs} did he start with?
+|| {name} had {x} {objs} in a {bag}. He put some more {objs} in the {bag}. Then, he had {sum} {objs} in the {bag} altogether. How many {objs} did he put in the {bag}?
+
+ANSWER:
+{y} {objs}
+
+
+#### Putting Together
+
+QUESTION:
+{name} had {x} {adj1} {obj} and {y} {adj2} {obj}. How many {obj} does he have altogether?
+
+ANSWER:
+{sum} {obj}
+
+#### Taking From
+#### Taking Apart
+
+#### Compare (How many more)
+#### Compare (How many less)
+
+
+
+### 1.0A.A.2
+
+VARIABLES:
+z = [0,20]
+sumTri = x+y+z [0,20]
+
+#### Equation
+
+QUESTION:
+What is the value of {var}? 
+|| Find the value of {var}:
+
+{x} + {var} + {z} = {sumTri}
+|| {var} + {x} + {z} = {sumTri}
+|| {x} + {z} + {var} = {sumTri}
+
+ANSWER:
+{y}
+
+QUESTION:
+What is the value of {var}? 
+|| Find the value of {var}:
+
+{x} + {y} + {z} = {var}
+
+ANSWER:
+{sumTri}
+
+
+
+
+### 1.0A.B.3
+
+### 1.0A.B.4
+
+Question:
+{x} + _ = {sum}
+|| _ + {x} = {sum}
+
+Answer: 
+{y}
+
+
+## 2.0A
+## 3.0A
+## 4.0A
+## 5.0A
+
+
+
+
+## 2.0A.A.2
+
+## 3.0A.A.2
+
+## 4.0A.A.2
+
+## 5.0A.A.2
