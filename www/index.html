@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Common Core Math Problems</title>
+    <link rel="shortcut icon" href="favicon.ico">
+    <link rel="stylesheet" href="Styles/css/Loading.css">
+</head>
+<body class="loadingScreen" data-bind="globalInput: $root">
+
+    <div id="loadingScreen" class="loadingScreen">
+        <div style="height: 50px"></div>
+        <div>
+            <img src="Assets/images/ToldLogo57.png" />
+        </div>
+        <img src="Assets/images/mainLoader.gif" />
+        <div>Loading...</div>
+        <div id="loadingProgress"></div>
+    </div>
+
+    <div data-role="page" id="home" style="display: none">
+        <div data-role="header" class="header">
+            <h1>Common Core Math Problems</h1>
+        </div>
+        <div id="content" data-role="content">
+        </div>
+        <div data-role="footer" class="footer">
+            <h4>&copy; Told - Rick & Matthew Love - 2014</h4>
+        </div>
+    </div>
+
+    <div id="test" style="display: none">
+        <div data-role="header">
+            <h1>Greek Bible - Testing</h1>
+        </div>
+        <div data-role="content">
+            <div id="qunit">Please refresh to load the testing system.</div>
+        </div>
+        <div data-role="footer">
+            <h4>&copy; Told - Rick & Matthew Love - 2014</h4>
+        </div>
+    </div>
+
+    <script src="Scripts/ts/System/AppLoader.js"></script>
+
+    <script type='text/javascript'>
+        var onProgress = function (p) {
+            var divProgress = document.getElementById("loadingProgress");
+            divProgress.textContent = (p * 100).toFixed(0) + "%";
+        }
+
+        Told.AppLoader.loadRequirements_Main(function () {
+
+            var viewModel = new Told.CommonCoreMathProblems.UI.MainViewModel();
+            ko.applyBindings(viewModel);
+
+            var hash = location.hash;
+            if ($(hash).length === 0) { hash = "#home"; }
+            $(hash).show();
+
+            $("#loadingScreen").hide();
+            $(".loadingScreen").removeClass("loadingScreen");
+
+        }, onProgress);
+    </script>
+
+
+    <script type='text/javascript'>
+
+        if (location.href.indexOf("test") > 0) {
+            Told.AppLoader.loadRequirements_Testing(function () {
+
+                console.log("Loaded Test Framework");
+
+                QUnit.config.autostart = false;
+                QUnit.config.testTimeout = 5000;
+
+                QUnit.load();
+
+                QUnit.module("UnitTests");
+
+                // Load Unit Tests first
+                Told.AppLoader.loadRequirements_UnitTests(function () {
+
+                    console.log("Loaded Unit Tests");
+
+                    $(document).ready(function () {
+                        //QUnit.load();
+                        QUnit.start();
+                    });
+                });
+            });
+        }
+    </script>
+
+</body>
+</html>

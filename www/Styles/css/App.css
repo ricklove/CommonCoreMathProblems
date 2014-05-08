@@ -1,0 +1,106 @@
+﻿
+#qunit-tests li li.pass {
+    white-space: pre;
+}
+
+#content {
+    /*position: relative;*/
+    background: black;
+    color: white;
+}
+
+.numTable {
+    margin: 0px auto;
+}
+
+    .numTable > table {
+        margin: 0px auto;
+    }
+
+.numSquareCell, .numSquareCellHeading {
+    height: 42px;
+    width: 42px;
+}
+
+.numSquareCell {
+    border: solid 1px lightgray;
+}
+
+.numSquareCellHeading {
+    /*border: solid 2px black;*/
+    font-weight: bold;
+}
+
+.numSquare, .numSquareHeading {
+    line-height: 42px;
+    font-size: 36px;
+}
+
+.numSquareHeading {
+}
+
+/*.nextNumber {
+    height: 25px;
+    width: 25px;
+    line-height: 25px;
+    margin: 10px auto;
+    color: blue;
+    font-weight: bold;
+    border: solid 1px blue;
+}*/
+
+.gameOverPopup {
+    /*position: absolute;
+    margin: 0px;
+    left: 0px;
+    right: 0px;
+    top: 0px;
+    bottom: 0px;*/
+    background: black;
+}
+
+.gameOver {
+    font-size: 3em;
+    color: rgb(0, 255, 10);
+}
+
+.info {
+    border: 1px solid rgb(150, 150, 150);
+    background: rgb(0, 0, 0);
+    display: inline-block;
+    margin: 3px;
+    width: 200px;
+}
+
+.level {
+    font-size: 2em;
+    color: yellow;
+    border: solid 2px yellow;
+    background: black;
+}
+
+.score {
+    font-size: 3em;
+    color: lime;
+    border: solid 2px lime;
+    background: black;
+}
+
+.scoreChange {
+    font-size: 3em;
+    position: absolute;
+}
+
+.scoreGood {
+    color: #0000ff;
+    text-shadow: 0px 0px 10px white;
+}
+
+.scoreBad {
+    color: #ff0000;
+    text-shadow: 0px 0px 10px white;
+}
+
+.cleared {
+    background: gray;
+}
