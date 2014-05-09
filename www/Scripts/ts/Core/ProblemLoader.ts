@@ -2,8 +2,53 @@
 
 module Told.CommonCoreMathProblems {
 
+    export interface IValue {
+        exact?: number;
+        range?: IRange;
+        operation?: IOperation;
+        variable?: string;
+        wordSet?: IWordSet;
+    }
+
+    export interface IRange {
+        minValue: IValue;
+        maxValue: IValue;
+    }
+
+    export enum Operator {
+        add,
+        subtract,
+        multiply,
+        divide,
+        modulo
+    }
+
+    export interface IOperation {
+        left: IValue;
+        operator: Operator;
+        right: IValue;
+    }
+
     export interface IVariable {
         rawText: string;
+        name: string;
+        value: IValue;
+    }
+
+    export interface IWord {
+        rawText: string;
+        mainText: string;
+        pluralModifier: string;
+        genderModifier: string;
+    }
+
+    export interface IWordGroup {
+        words: IWord[]
+    }
+
+    export interface IWordSet {
+        rawText: string;
+        groups: IWordGroup[];
     }
 
     export interface IContext {
@@ -65,12 +110,50 @@ module Told.CommonCoreMathProblems {
             var lastScope: IScope = { contexts: [lastContext] };
             var lastProblem: IProblem = { scope: null, questionRawText: "", answerRawText: "" };
 
-            var itemText = "";
-
             contexts.push(lastContext);
             scopes.push(lastScope);
 
             var mode: ParseMode = ParseMode.None;
+            var itemText = "";
+
+            var closeItem = function () {
+
+                if (mode === ParseMode.Answer) {
+
+                    lastProblem.answerRawText = itemText;
+                    itemText = "";
+
+                    if (lastProblem.scope != null) {
+                        throw new Error("An ANSWER is missing from the QUESTION before: " + lastProblem.questionRawText);
+                    }
+
+                    lastProblem.scope = lastScope;
+                    problems.push(lastProblem);
+
+                    lastProblem = { scope: null, questionRawText: "", answerRawText: "" };
+                } else {
+
+                    if (lastProblem.questionRawText != "") {
+                        throw new Error("An ANSWER is missing QUESTION: " + lastProblem.questionRawText);
+                    }
+
+                    if (mode === ParseMode.None) {
+                        if (itemText != "") {
+                            throw new Error("Closing a non-empty item without a current mode: This should not be logically possible");
+                        }
+                    } else if (mode === ParseMode.Variables) {
+
+                        lastContext.variablesRawText = itemText;
+                        itemText = "";
+
+                    } else if (mode === ParseMode.Question) {
+
+                        lastProblem.questionRawText = itemText;
+                        itemText = "";
+
+                    }
+                }
+            };
 
             // Parse Into Raw Texts
             for (var iLine = 0; iLine < lines.length; iLine++) {
@@ -80,45 +163,6 @@ module Told.CommonCoreMathProblems {
                     // Skip blank lines
                     continue;
                 }
-
-                var closeItem = function () {
-
-                    if (mode === ParseMode.Answer) {
-
-                        lastProblem.answerRawText = itemText;
-                        itemText = "";
-
-                        if (lastProblem.scope != null) {
-                            throw new Error("An ANSWER is missing from the QUESTION before: " + lastProblem.questionRawText);
-                        }
-
-                        lastProblem.scope = lastScope;
-                        problems.push(lastProblem);
-
-                        lastProblem = { scope: null, questionRawText: "", answerRawText: "" };
-                    } else {
-
-                        if (lastProblem.questionRawText != "") {
-                            throw new Error("An ANSWER is missing QUESTION: " + lastProblem.questionRawText);
-                        }
-
-                        if (mode === ParseMode.None) {
-                            if (itemText != "") {
-                                throw new Error("Closing a non-empty item without a current mode: This should not be logically possible");
-                            }
-                        } else if (mode === ParseMode.Variables) {
-
-                            lastContext.variablesRawText = itemText;
-                            itemText = "";
-
-                        } else if (mode === ParseMode.Question) {
-
-                            lastProblem.questionRawText = itemText;
-                            itemText = "";
-
-                        }
-                    }
-                };
 
                 // Parse Line
                 if (line.match(/^#+/i)) {
@@ -157,8 +201,165 @@ module Told.CommonCoreMathProblems {
 
             }
 
-            // Parse Raw Texts
-            var breakdance = true;
+            // Parse Variables
+            // Go through each context to parse the variables block
+            for (var iContext = 0; iContext < contexts.length; iContext++) {
+                var c = contexts[iContext];
+
+                var variables = ProblemLoader.parseVariables(c.variablesRawText);
+            }
+
+
+
+        }
+
+        static parseVariables(variablesRawText: string): IVariable[] {
+
+            var variables: IVariable[] = [];
+
+            // Any operation 
+            var rpOperator = "\\s*[+\\-*/%]+\\s*";
+            var rpName = "\\s*[0-9a-zA-Z_]+\\s*";
+            var rpFlatOperation = "(?:\\s*" + rpName + "(?:" + rpOperator + rpName + ")*" + "\\s*)";
+            var rpOperationWithParens = "(?:\\s*\\(" + rpFlatOperation + "\\)\\s*)";
+            var rpEitherOperation = "(?:" + rpFlatOperation + "|" + rpOperationWithParens + ")";
+            var rpAnyOperation = rpEitherOperation + "(?:" + rpOperator + rpEitherOperation + ")*";
+
+            // Single number 20; 1
+            var regexExact = /^([0-9]+)$/;
+            // Simple Variable
+            var regexVariable = /^([0-9a-zA-Z_]+)$/;
+            // Range [0,20]; [x+3,15]
+            var rpRange = "\\[(" + rpAnyOperation + "),(" + rpAnyOperation + ")\\]";
+            var regexRange = new RegExp("^" + rpRange + "$");
+            // Operation x+y; x+(2+y+3)-5
+            var regexOperation = new RegExp("^(" + rpAnyOperation + ")(" + rpOperator + ")(" + rpAnyOperation + ")$");
+            // Operation with Range x+y [0,20]
+            var regexOperationWithRange = new RegExp("^(" + rpAnyOperation + ")(" + rpRange + ")$");
+
+            // WordSet {a,b,c}
+            var rpWordMain = "\\s*[a-zA-Z]+\\s*";
+            var rpWord = rpWordMain + "(?:\\(" + rpWordMain + "\\))?" + "(?:\\s*<\\s*s?he\\s*>\\s*)?";
+            var rpWordGroups = "(?:\\s*" + rpWord + "(?:[;,]" + rpWord + ")*\\s*)";
+            var regexWordSet = new RegExp("^\\s*\\{(" + rpWordGroups + ")\\}\\s*$");
+
+            // Inner Word Set
+            var regexWord = "^(" + rpWordMain + ")(?:\\((" + rpWordMain + ")\\))?" + "(?:\\s*<\\s*(s?he)\\s*>\\s*)?$";
+
+            var parseWord = function (text: string): IWord {
+                var t = text.trim();
+
+                var m = t.match(regexWord);
+
+                var mainText = m[1];
+                var pluralModifier = m[2] || "";
+                var genderModifier = m[3] || "";
+
+                return { rawText: text, mainText: mainText, pluralModifier: pluralModifier, genderModifier: genderModifier };
+            }
+
+            var parseWordGroup = function (text: string): IWordGroup {
+                var t = text.trim();
+
+                var wordTexts = t.split(",");
+
+                var words = wordTexts.map(parseWord);
+
+                return { words: words };
+            }
+
+            var parseWordSet = function (text: string): IWordSet {
+                var t = text.trim();
+
+                var groupTexts = t.split(";");
+
+                var groups = groupTexts.map(parseWordGroup);
+
+                return { groups: groups };
+            }
+
+            var parseValue = function (text: string): IValue {
+
+                var t = text.trim();
+
+                if (t.match(regexExact)) {
+
+                    var m = t.match(regexExact);
+
+                    return { exact: parseInt(m[1]) };
+
+                } else if (t.match(regexVariable)) {
+
+                    var m = t.match(regexVariable);
+                    var name = m[1].trim();
+
+                    return { variable: name };
+
+                } else if (t.match(regexRange)) {
+
+                    var m = t.match(regexRange);
+                    var min = parseValue(m[1]);
+                    var max = parseValue(m[2]);
+
+                    return { range: { minValue: min, maxValue: max } };
+
+                } else if (t.match(regexOperation)) {
+
+                    var m = t.match(regexOperation);
+                    var left = parseValue(m[1]);
+                    var oText = m[2].trim();
+                    var right = parseValue(m[3]);
+
+                    var operator =
+                        oText === "+" ? Operator.add :
+                        oText === "-" ? Operator.subtract :
+                        oText === "*" ? Operator.multiply :
+                        oText === "/" ? Operator.divide :
+                        Operator.modulo;
+
+
+                    return { operation: { left: left, operator: operator, right: right } };
+
+                } else if (t.match(regexOperationWithRange)) {
+
+                    var m = t.match(regexOperationWithRange);
+                    var operation = parseValue(m[1]);
+                    var range = parseValue(m[2]);
+
+                    return { operation: operation, range: range };
+
+                } else if (t.match(regexWordSet)) {
+
+                    var m = t.match(regexWordSet);
+                    var wordSet = parseWordSet(m[1]);
+
+                    return { wordSet: wordSet };
+
+                } else {
+                    throw new Error("Unknown value pattern: " + text);
+                }
+            };
+
+            var lines = variablesRawText.replace("\r\n", "\n").split("\n");
+
+            for (var iLine = 0; iLine < lines.length; iLine++) {
+                var line = lines[iLine].trim();
+
+                if (line == "") {
+                    // Skip blank lines
+                    continue;
+                }
+
+                var parts = line.split("=");
+                var name = parts[0].trim();
+                var valueText = parts[1].trim();
+
+                var value = parseValue(valueText);
+
+                variables.push({ rawText: line, name: name, value: value });
+            }
+
+            return variables;
         }
 
     }

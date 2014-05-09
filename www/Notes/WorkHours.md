@@ -1,88 +1,34 @@
-## TableMath V0.1
 
-### Hour 1
+### 2014-05-08
 
-#### Completed
+#### 13:40-14:00
+#### 16:00-18:40
 
-- A basic working times table
-
-
-### Hour 2
-
-#### Completed
-
-- Remove lines off board
+- Setup Project
+- Setup Host Site
+- Create Sample Problems
+	- Define 10 word and equation problems that use variables and objects.
+- Parse Sample Problems - Main File Parts
+	- Parse the problems and their contexts.
 
 
-### Hour 3
+### 2014-05-09
 
-#### Completed
+#### 8:40-9:05
 
-- Animate Score and numbers
+- Parse Variable
+	- Define the Variable data structure
 
+#### 10:25-10:55
 
-### Hour 4-7
+- Parse the content of the variables text block
 
-#### Completed
+#### 11:55-12:35
+#### 13:10-13:25
+#### 15:00-15:40
 
-- Create tetris style
+- Fix RegExp for parsing variables
 
+#### NEXT
 
-### Hour 8
-
-#### What is the most important task to complete in this next hour?
-
-Publish a working version to phonegap and install on the kindles
-
-#### Completed
-
-- Fix bugs with UI
-
-
-### Hour 9
-
-#### What is the most important task to complete in this next hour?
-
-Publish a working version to phonegap and install on the kindles
-
-#### Completed
-
-- Add Blank lines on top
-- Handle Game Over
-
-
-### Hour 10
-
-#### Completed
-
-- UI Tweaks
-
-
-### Hour 11
-
-#### Completed
-
-- Published to PhoneGap
-
-
-### Hour 12
-
-#### What will most benefit the user?
-
-Levels will allow the user to have a sense of progress and focus on a problem areas
-
-#### What is required to accomplish this?
-
-- Define Levels
-- Store User data
-- Choose User
-- Choose Level
-
-#### What can be done this hour?
-
-Define Levels
-
-#### Completed
-
-- Define levels
-- Load levels
+- Parse 
