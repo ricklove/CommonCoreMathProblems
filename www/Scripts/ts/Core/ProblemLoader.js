@@ -54,7 +54,7 @@ var Told;
 
                 var lastContext = { heading: "", variablesRawText: "", variables: [] };
                 var lastScope = { contexts: [lastContext] };
-                var lastProblem = { scope: null, questionRawText: "", answerRawText: "" };
+                var lastProblem = { scope: null, questionRawText: "", answerRawText: "", question: null, answer: null };
 
                 contexts.push(lastContext);
                 scopes.push(lastScope);
@@ -74,7 +74,7 @@ var Told;
                         lastProblem.scope = lastScope;
                         problems.push(lastProblem);
 
-                        lastProblem = { scope: null, questionRawText: "", answerRawText: "" };
+                        lastProblem = { scope: null, questionRawText: "", answerRawText: "", question: null, answer: null };
                     } else {
                         if (lastProblem.questionRawText != "") {
                             throw new Error("An ANSWER is missing QUESTION: " + lastProblem.questionRawText);
@@ -133,11 +133,57 @@ var Told;
                     }
                 }
 
-                for (var iContext = 0; iContext < contexts.length; iContext++) {
-                    var c = contexts[iContext];
+                // Parse Variables
+                contexts.forEach(function (c) {
+                    c.variables = ProblemLoader.parseVariables(c.variablesRawText);
+                });
 
-                    var variables = ProblemLoader.parseVariables(c.variablesRawText);
+                // Parse Problems
+                problems.forEach(function (p) {
+                    p.question = ProblemLoader.parseProblemText(p.questionRawText);
+                    p.answer = ProblemLoader.parseProblemText(p.answerRawText);
+                });
+
+                var breakdance = true;
+            };
+
+            ProblemLoader.parseProblemText = function (text) {
+                var rpCaptureBeginBeforeBraces = "(^\\s*[^\\{\\}]+\\s*)(?:{|$)";
+                var rpCaptureBeginInsideBraces = "(?:^\\{([^\\{\\}]+)\\})";
+                var rpStart = "(?:" + rpCaptureBeginBeforeBraces + "|" + rpCaptureBeginInsideBraces + ")";
+                var regexStart = new RegExp(rpStart);
+
+                var regexReference = /^([0-9a-zA-z]+)('s|\\+s|-s)?$/;
+
+                var parseReference = function (refText) {
+                    if (refText === "") {
+                        return null;
+                    }
+
+                    var m = refText.match(regexReference);
+                    var name = m[1];
+                    var modifier = m[2] || "";
+
+                    return { rawText: refText, name: name, modifier: modifier };
+                };
+
+                var problemText = { rawText: text, phrases: [] };
+                var t = text.trim();
+                var m = t.match(regexStart);
+
+                while (m) {
+                    problemText.phrases.push({ plainText: m[1] || "", reference: parseReference(m[2] || "") });
+
+                    var capturedPart = m[1] || ("{" + m[2] + "}");
+                    t = t.substr(capturedPart.length);
+                    m = t.match(regexStart);
                 }
+
+                if (t != "") {
+                    throw new Error("Not all the text was captured. Ensure that each {brace} is closed properly.");
+                }
+
+                return problemText;
             };
 
             ProblemLoader.parseVariables = function (variablesRawText) {

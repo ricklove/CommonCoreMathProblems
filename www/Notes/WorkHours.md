@@ -29,6 +29,7 @@
 
 - Fix RegExp for parsing variables
 
-#### NEXT
+#### 16:40-17:20
+#### 17:50-18:10
 
-- Parse 
+- Parse Question and Answer
