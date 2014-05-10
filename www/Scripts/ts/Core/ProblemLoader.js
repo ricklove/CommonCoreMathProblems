@@ -161,6 +161,109 @@ var Told;
                 });
 
                 var breakdance3 = true;
+
+                // Calculate a debug problemInstance for each problem
+                problems.forEach(function (p) {
+                    p.problemInstanceDebug = ProblemLoader.createProblemInstance(p, true);
+                });
+
+                var breakdance4 = true;
+            };
+
+            ProblemLoader.createProblemInstance = function (problem, isDebug) {
+                if (typeof isDebug === "undefined") { isDebug = false; }
+                var sample = ProblemLoader.createSample(problem.sampleSet, isDebug);
+
+                throw "Not Implemented";
+            };
+
+            ProblemLoader.createSample = function (sampleSet, isDebug) {
+                if (typeof isDebug === "undefined") { isDebug = false; }
+                var values = [];
+                var isOk = false;
+
+                while (!isOk) {
+                    values = [];
+                    isOk = true;
+
+                    var getValue = function (valInner, modifier) {
+                        var val = { possibleValuesDebug: "" };
+
+                        if (valInner.exact !== null) {
+                            val = { numberValue: valInner.exact, possibleValuesDebug: "" + valInner.exact };
+                        } else if (valInner.variableRef) {
+                            var vRef = valInner.variableRef;
+                            var vMatches = values.filter(function (v2) {
+                                return v2.name === vRef;
+                            });
+
+                            if (vMatches.length !== 1) {
+                                throw new Error("Ambiguous VariableRef: (Variable Declarations may be out of order)" + valInner.variableRef);
+                            }
+
+                            val = vMatches[0].value;
+                        } else if (valInner.operation) {
+                            var leftVal = getValue(valInner.operation.left, "");
+                            var rightVal = getValue(valInner.operation.right, "");
+
+                            var op = valInner.operation.operator;
+                            var nVal = 0;
+                            var pVal = "";
+
+                            if (op === 0 /* add */) {
+                                nVal = leftVal.numberValue + rightVal.numberValue;
+                                pVal = leftVal.possibleValuesDebug + " + " + rightVal.possibleValuesDebug;
+                            } else if (op === 1 /* subtract */) {
+                                nVal = leftVal.numberValue - rightVal.numberValue;
+                                pVal = leftVal.possibleValuesDebug + " - " + rightVal.possibleValuesDebug;
+                            } else if (op === 2 /* multiply */) {
+                                nVal = leftVal.numberValue * rightVal.numberValue;
+                                pVal = leftVal.possibleValuesDebug + " * " + rightVal.possibleValuesDebug;
+                            } else if (op === 3 /* divide */) {
+                                nVal = leftVal.numberValue / rightVal.numberValue;
+                                pVal = leftVal.possibleValuesDebug + " / " + rightVal.possibleValuesDebug;
+                            } else if (op === 4 /* modulo */) {
+                                nVal = leftVal.numberValue % rightVal.numberValue;
+                                pVal = leftVal.possibleValuesDebug + " % " + rightVal.possibleValuesDebug;
+                            }
+
+                            val = { numberValue: nVal, possibleValuesDebug: pVal };
+                        } else if (valInner.wordSet) {
+                            var wSet = valInner.wordSet;
+
+                            wSet.rawText;
+
+                            // TODO: Choose words from the word set correctly
+                            // TODO: Handle modifiers
+                            //throw "Not Implemented";
+                            val = { textValue: wSet.rawText, possibleValuesDebug: wSet.rawText };
+                        }
+
+                        if (valInner.range) {
+                            var minVal = getValue(valInner.range.minValue, "");
+                            var maxVal = getValue(valInner.range.maxValue, "");
+
+                            if (val.numberValue == null) {
+                                // Create random range
+                                var nVal = Math.floor(minVal.numberValue + Math.random() * (maxVal.numberValue - minVal.numberValue));
+                                val = { numberValue: nVal, possibleValuesDebug: "[" + minVal.possibleValuesDebug + "," + maxVal.possibleValuesDebug + "]" };
+                            } else {
+                                // Verify range
+                                if (val.numberValue < minVal.numberValue || val.numberValue > maxVal.numberValue) {
+                                    isOk = false;
+                                }
+                            }
+                        }
+
+                        return val;
+                    };
+
+                    sampleSet.variables.forEach(function (v) {
+                        values.push({ name: v.variable.name, value: getValue(v.variable.value, v.modifier) });
+                    });
+                }
+
+                return { values: values };
             };
 
             ProblemLoader.createSampleSet = function (problem) {
@@ -343,18 +446,18 @@ var Told;
                     if (t.match(regexExact)) {
                         var m = t.match(regexExact);
 
-                        return { exact: parseInt(m[1]) };
+                        return { exact: parseInt(m[1]), operation: null, range: null, variableRef: null, wordSet: null };
                     } else if (t.match(regexVariable)) {
                         var m = t.match(regexVariable);
                         var name = m[1].trim();
 
-                        return { variable: name };
+                        return { variableRef: name, exact: null, operation: null, range: null, wordSet: null };
                     } else if (t.match(regexRange)) {
                         var m = t.match(regexRange);
                         var min = parseValue(m[1]);
                         var max = parseValue(m[2]);
 
-                        return { range: { minValue: min, maxValue: max } };
+                        return { range: { minValue: min, maxValue: max }, exact: null, operation: null, variableRef: null, wordSet: null };
                     } else if (t.match(regexOperation)) {
                         var m = t.match(regexOperation);
                         var left = parseValue(m[1]);
@@ -363,18 +466,18 @@ var Told;
 
                         var operator = oText === "+" ? 0 /* add */ : oText === "-" ? 1 /* subtract */ : oText === "*" ? 2 /* multiply */ : oText === "/" ? 3 /* divide */ : 4 /* modulo */;
 
-                        return { operation: { left: left, operator: operator, right: right } };
+                        return { operation: { left: left, operator: operator, right: right }, exact: null, range: null, variableRef: null, wordSet: null };
                     } else if (t.match(regexOperationWithRange)) {
                         var m = t.match(regexOperationWithRange);
-                        var operation = parseValue(m[1]);
-                        var range = parseValue(m[2]);
+                        var outOperation = parseValue(m[1]);
+                        var outRange = parseValue(m[2]);
 
-                        return { operation: operation, range: range };
+                        return { operation: outOperation.operation, range: outRange.range, exact: null, variableRef: null, wordSet: null };
                     } else if (t.match(regexWordSet)) {
                         var m = t.match(regexWordSet);
                         var wordSet = parseWordSet(m[1]);
 
-                        return { wordSet: wordSet };
+                        return { wordSet: wordSet, exact: null, operation: null, range: null, variableRef: null };
                     } else {
                         throw new Error("Unknown value pattern: " + text);
                     }

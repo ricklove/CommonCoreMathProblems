@@ -38,14 +38,20 @@
 #### 10:40-10:50
 #### 11:05-11:45
 #### 12:10-12:20
-#### 13:40-
 
 - Flatten the scope to get all the variable definitions in scope
 
+#### 13:40-15:10
+
+- Calculate the sample values with possible ranges
 
 #### NEXT
 
-- Generate a debug view of the problem that shows the variable definition rawText
-- Generate actual sample values of the variables (show next to definition in debug view)
+- Calculate the word sample values
+- Create a debug problem instance with the sample values and range
+- Create a problem instance with the sample values
+
+- Display debug view of the problem that shows the variable definition rawText
+- Display actual sample values of the variables (show next to definition in debug view)
 - Handle to || of the problemText
 - Generate sample problems
