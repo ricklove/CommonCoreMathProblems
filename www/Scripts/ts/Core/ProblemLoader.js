@@ -182,7 +182,7 @@ var Told;
                             throw new Error("Unknown variable:'" + p.reference.name + "' in " + problem.questionRawText + "\r\nAnswer:\r\n" + problem.answerRawText);
                         }
 
-                        var foundVar = matching[matching.length];
+                        var foundVar = matching[matching.length - 1];
 
                         if (variables.filter(function (v) {
                             return v.variable.name == foundVar.name && v.modifier == p.reference.modifier;
