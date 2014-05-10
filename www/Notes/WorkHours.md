@@ -53,14 +53,12 @@
 #### 17:40-18:20
 
 - Calculate the word sample values
+- Create some problem instances with the sample values
 
 #### FUTURE
 
 - getModifiedWordText
 
-- Create a problem instance with the sample values
-
-- Display debug view of the problem that shows the variable definition rawText
-- Display actual sample values of the variables (show next to definition in debug view)
+- Display problems in html
 - Handle to || of the problemText
 - Generate sample problems
