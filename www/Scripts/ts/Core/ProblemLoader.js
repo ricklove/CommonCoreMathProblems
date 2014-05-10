@@ -53,8 +53,8 @@ var Told;
                 var contexts = [];
 
                 var lastContext = { heading: "", variablesRawText: "", variables: [] };
-                var lastScope = { contexts: [lastContext] };
-                var lastProblem = { scope: null, questionRawText: "", answerRawText: "", question: null, answer: null };
+                var lastScope = { contexts: [lastContext], allVariables: null };
+                var lastProblem = { scope: null, questionRawText: "", answerRawText: "", question: null, answer: null, sampleSet: null };
 
                 contexts.push(lastContext);
                 scopes.push(lastScope);
@@ -74,7 +74,7 @@ var Told;
                         lastProblem.scope = lastScope;
                         problems.push(lastProblem);
 
-                        lastProblem = { scope: null, questionRawText: "", answerRawText: "", question: null, answer: null };
+                        lastProblem = { scope: null, questionRawText: "", answerRawText: "", question: null, answer: null, sampleSet: null };
                     } else {
                         if (lastProblem.questionRawText != "") {
                             throw new Error("An ANSWER is missing QUESTION: " + lastProblem.questionRawText);
@@ -112,7 +112,7 @@ var Told;
                         lastContext = { heading: line.substr(level).trim(), variablesRawText: "", variables: [] };
                         contexts.push(lastContext);
 
-                        lastScope = { contexts: lastScope.contexts.slice(0, level) };
+                        lastScope = { contexts: lastScope.contexts.slice(0, level), allVariables: null };
                         lastScope.contexts.push(lastContext);
                         scopes.push(lastScope);
                     } else if (line.match(/^VARIABLES:$/i)) {
@@ -144,7 +144,90 @@ var Told;
                     p.answer = ProblemLoader.parseProblemText(p.answerRawText);
                 });
 
-                var breakdance = true;
+                var breakdance1 = true;
+
+                // Flatten Scope for each problem
+                problems.forEach(function (p) {
+                    if (p.scope.allVariables === null) {
+                        p.scope.allVariables = ProblemLoader.flattenContextVariables(p.scope.contexts);
+                    }
+                });
+
+                var breakdance2 = true;
+
+                // Create sample set for each problem
+                problems.forEach(function (p) {
+                    p.sampleSet = ProblemLoader.createSampleSet(p);
+                });
+
+                var breakdance3 = true;
+            };
+
+            ProblemLoader.createSampleSet = function (problem) {
+                var variables = [];
+
+                problem.question.phrases.concat(problem.answer.phrases).forEach(function (p) {
+                    if (p.reference != null) {
+                        var matching = problem.scope.allVariables.filter(function (v) {
+                            return v.name == p.reference.name;
+                        });
+
+                        if (matching.length === 0) {
+                            matching = problem.scope.allVariables.filter(function (v) {
+                                return v.name + "s" == p.reference.name;
+                            });
+                        }
+
+                        if (matching.length === 0) {
+                            throw new Error("Unknown variable:'" + p.reference.name + "' in " + problem.questionRawText + "\r\nAnswer:\r\n" + problem.answerRawText);
+                        }
+
+                        var foundVar = matching[matching.length];
+
+                        if (variables.filter(function (v) {
+                            return v.variable.name == foundVar.name && v.modifier == p.reference.modifier;
+                        }).length === 0) {
+                            variables.push({ variable: foundVar, modifier: p.reference.modifier });
+                        }
+                    }
+                });
+
+                // Resort variables by priority
+                var unsorted = variables;
+                variables = [];
+
+                problem.scope.allVariables.forEach(function (v) {
+                    var uMatching = unsorted.filter(function (u) {
+                        return u.variable.name === v.name;
+                    });
+
+                    uMatching.forEach(function (u) {
+                        var i = unsorted.indexOf(u);
+                        if (i >= 0) {
+                            variables.push(unsorted.splice(i, 1)[0]);
+                        }
+                    });
+                });
+
+                var sampleDebug = "";
+
+                variables.forEach(function (v) {
+                    sampleDebug += v.variable.rawText + "(" + v.modifier + ")\r\n";
+                });
+
+                return { variables: variables, sampleDebug: sampleDebug, samples: [] };
+            };
+
+            ProblemLoader.flattenContextVariables = function (contexts) {
+                var vars = [];
+
+                contexts.forEach(function (c) {
+                    c.variables.forEach(function (v) {
+                        vars.push(v);
+                    });
+                });
+
+                return vars;
             };
 
             ProblemLoader.parseProblemText = function (text) {
@@ -153,7 +236,7 @@ var Told;
                 var rpStart = "(?:" + rpCaptureBeginBeforeBraces + "|" + rpCaptureBeginInsideBraces + ")";
                 var regexStart = new RegExp(rpStart);
 
-                var regexReference = /^([0-9a-zA-z]+)('s|\\+s|-s)?$/;
+                var regexReference = /^([0-9a-zA-z]*[a-zA-z])('s|\\+s|-s|[0-9])?$/;
 
                 var parseReference = function (refText) {
                     if (refText === "") {
@@ -251,7 +334,7 @@ var Told;
 
                     var groups = groupTexts.map(parseWordGroup);
 
-                    return { groups: groups };
+                    return { rawText: text, groups: groups };
                 };
 
                 var parseValue = function (text) {

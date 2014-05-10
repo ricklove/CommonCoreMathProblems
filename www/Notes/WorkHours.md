@@ -33,3 +33,19 @@
 #### 17:50-18:10
 
 - Parse Question and Answer
+
+### 2014-05-10
+#### 10:40-10:50
+#### 11:05-11:45
+#### 12:10-12:20
+#### 13:40-
+
+- Flatten the scope to get all the variable definitions in scope
+
+
+#### NEXT
+
+- Generate a debug view of the problem that shows the variable definition rawText
+- Generate actual sample values of the variables (show next to definition in debug view)
+- Handle to || of the problemText
+- Generate sample problems
