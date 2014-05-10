@@ -47,16 +47,18 @@
 
 #### 15:40-16:05
 
-- Create a problem instance with the sample values
+- Create a debug problem instance with the sample values and range
 
-#### NEXT
+#### 16:45-17:15
+#### 17:40-18:20
 
 - Calculate the word sample values
 
 #### FUTURE
 
-- Create a debug problem instance with the sample values and range
+- getModifiedWordText
 
+- Create a problem instance with the sample values
 
 - Display debug view of the problem that shows the variable definition rawText
 - Display actual sample values of the variables (show next to definition in debug view)

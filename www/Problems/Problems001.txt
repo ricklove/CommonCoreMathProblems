@@ -43,29 +43,29 @@ ANSWER:
 ##### Unknown Sum
 
 QUESTION:
-{name} had {x} {objs}. He got {y} more {objs}. How many {objs} does {name} have now?
-|| {name} had {x} {objs} in a {bag}. He put {y} more {objs} in the {bag}. How many {objs} are in the {bag} now.
+{name} had {x} {obj}. He got {y} more {obj}. How many {obj} does {name} have now?
+|| {name} had {x} {obj} in a {bag}. He put {y} more {obj} in the {bag}. How many {obj} are in the {bag} now.
 
 ANSWER:
-{sum} {objs}
+{sum} {obj}
 
 ##### Unknown Start
 
 QUESTION:
-{name} had some {objs}. He got {y} more {objs} for {name's} birthday. Then, he had {sum} {objs} altogether. How many {objs} did he have at the start?
-|| {name} had some {objs} in a {bag}. He put {y} more {objs} in the {bag}. Then, he had {sum} {objs} in the {bag} altogether. How many {objs} did he have in the {bag} at the start?
+{name} had some {obj}. He got {y} more {obj} for {name's} birthday. Then, he had {sum} {obj} altogether. How many {obj} did he have at the start?
+|| {name} had some {obj} in a {bag}. He put {y} more {obj} in the {bag}. Then, he had {sum} {obj} in the {bag} altogether. How many {obj} did he have in the {bag} at the start?
 
 ANSWER:
-{x} {objs}
+{x} {obj}
 
 ##### Unknown Change
 
 QUESTION:
-{name} had {x} {objs}. He got some more {objs} for {name's} birthday. Then, he had {sum} {objs} altogether. How many {objs} did he start with?
-|| {name} had {x} {objs} in a {bag}. He put some more {objs} in the {bag}. Then, he had {sum} {objs} in the {bag} altogether. How many {objs} did he put in the {bag}?
+{name} had {x} {obj}. He got some more {obj} for {name's} birthday. Then, he had {sum} {obj} altogether. How many {obj} did he start with?
+|| {name} had {x} {obj} in a {bag}. He put some more {obj} in the {bag}. Then, he had {sum} {obj} in the {bag} altogether. How many {obj} did he put in the {bag}?
 
 ANSWER:
-{y} {objs}
+{y} {obj}
 
 
 #### Putting Together

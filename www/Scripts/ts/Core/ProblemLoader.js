@@ -11,6 +11,20 @@ var Told;
         })(CommonCoreMathProblems.Operator || (CommonCoreMathProblems.Operator = {}));
         var Operator = CommonCoreMathProblems.Operator;
 
+        (function (SingularOption) {
+            SingularOption[SingularOption["matchNumber"] = 0] = "matchNumber";
+            SingularOption[SingularOption["forceSingular"] = 1] = "forceSingular";
+            SingularOption[SingularOption["forcePlural"] = 2] = "forcePlural";
+        })(CommonCoreMathProblems.SingularOption || (CommonCoreMathProblems.SingularOption = {}));
+        var SingularOption = CommonCoreMathProblems.SingularOption;
+
+        (function (PartOfSpeechOption) {
+            PartOfSpeechOption[PartOfSpeechOption["Subject"] = 0] = "Subject";
+            PartOfSpeechOption[PartOfSpeechOption["Object"] = 1] = "Object";
+            PartOfSpeechOption[PartOfSpeechOption["Possessive"] = 2] = "Possessive";
+        })(CommonCoreMathProblems.PartOfSpeechOption || (CommonCoreMathProblems.PartOfSpeechOption = {}));
+        var PartOfSpeechOption = CommonCoreMathProblems.PartOfSpeechOption;
+
         var ParseMode;
         (function (ParseMode) {
             ParseMode[ParseMode["None"] = 0] = "None";
@@ -67,7 +81,7 @@ var Told;
                         lastProblem.answerRawText = itemText;
                         itemText = "";
 
-                        if (lastProblem.scope != null) {
+                        if (lastProblem.scope !== null) {
                             throw new Error("An ANSWER is missing from the QUESTION before: " + lastProblem.questionRawText);
                         }
 
@@ -76,12 +90,12 @@ var Told;
 
                         lastProblem = { scope: null, questionRawText: "", answerRawText: "", question: null, answer: null, sampleSet: null };
                     } else {
-                        if (lastProblem.questionRawText != "") {
+                        if (lastProblem.questionRawText !== "") {
                             throw new Error("An ANSWER is missing QUESTION: " + lastProblem.questionRawText);
                         }
 
                         if (mode === 0 /* None */) {
-                            if (itemText != "") {
+                            if (itemText !== "") {
                                 throw new Error("Closing a non-empty item without a current mode: This should not be logically possible");
                             }
                         } else if (mode === 1 /* Variables */) {
@@ -97,7 +111,7 @@ var Told;
                 for (var iLine = 0; iLine < lines.length; iLine++) {
                     var line = lines[iLine].trim();
 
-                    if (line == "") {
+                    if (line === "") {
                         continue;
                     }
 
@@ -165,6 +179,11 @@ var Told;
                 // Calculate a debug problemInstance for each problem
                 problems.forEach(function (p) {
                     p.problemInstanceDebug = ProblemLoader.createProblemInstance(p, true);
+
+                    p.problemInstances = [];
+                    for (var c = 0; c < 5; c++) {
+                        p.problemInstances.push(ProblemLoader.createProblemInstance(p, false));
+                    }
                 });
 
                 var breakdance4 = true;
@@ -179,18 +198,12 @@ var Told;
 
                     // Go through the phrases and fill in the sample values
                     pText.phrases.forEach(function (phrase) {
-                        if (phrase.plainText != "") {
+                        if (phrase.plainText !== "") {
                             t += phrase.plainText;
                         } else {
                             var mVar = sample.values.filter(function (v) {
-                                return v.name === phrase.reference.name && v.modifier === phrase.reference.modifier;
+                                return v.name === phrase.reference.name && v.modifier.idText === phrase.reference.modifier.idText;
                             });
-
-                            if (mVar.length === 0) {
-                                mVar = sample.values.filter(function (v) {
-                                    return v.name + "s" === phrase.reference.name && v.modifier === phrase.reference.modifier;
-                                });
-                            }
 
                             if (mVar.length === 0) {
                                 throw new Error("A variable is missing: " + phrase.reference.name);
@@ -201,7 +214,7 @@ var Told;
                             }
 
                             var val = mVar[0].value;
-                            if (val.numberValue != null) {
+                            if (val.numberValue !== null) {
                                 t += val.numberValue;
                             } else {
                                 t += val.textValue;
@@ -230,10 +243,70 @@ var Told;
                     values = [];
                     isOk = true;
 
+                    var getModifiedWordText = function (word, modifier) {
+                        //throw "Not Implemented";
+                        // TODO: Implement this
+                        return word.mainText;
+                    };
+
+                    var getWordValue = function (wordSet, name, modifier) {
+                        var textValue = "";
+                        var chosenWordGroup = null;
+                        var chosenWord = null;
+
+                        // Check for already existing group
+                        var mSameName = values.filter(function (v2) {
+                            return v2.name === name;
+                        });
+                        var mSameReference = mSameName.filter(function (v2) {
+                            return v2.modifier.idReference === modifier.idReference;
+                        });
+                        var mSameText = mSameReference.filter(function (v2) {
+                            return v2.modifier.idText === modifier.idText;
+                        });
+
+                        if (mSameText.length > 0) {
+                            textValue = mSameText[0].value.textValue;
+                            chosenWordGroup = mSameText[0].chosenWordGroup;
+                            chosenWord = mSameText[0].chosenWord;
+                        } else if (mSameReference.length > 0) {
+                            textValue = getModifiedWordText(mSameReference[0].chosenWord, modifier);
+                            chosenWordGroup = mSameReference[0].chosenWordGroup;
+                            chosenWord = mSameReference[0].chosenWord;
+                        } else if (mSameName.length > 0) {
+                            // Choose different random word from group
+                            chosenWordGroup = mSameName[0].chosenWordGroup;
+
+                            var remainingWords = chosenWordGroup.words.filter(function (w) {
+                                return !mSameName.some(function (s) {
+                                    return s.chosenWord.mainText === w.mainText;
+                                });
+                            });
+
+                            var rWordIndex = ProblemLoader.getRandomInt(0, remainingWords.length - 1);
+                            chosenWord = remainingWords[rWordIndex];
+
+                            textValue = getModifiedWordText(chosenWord, modifier);
+                        } else {
+                            // Choose random group and random word
+                            var gIndex = ProblemLoader.getRandomInt(0, wordSet.groups.length - 1);
+                            chosenWordGroup = wordSet.groups[gIndex];
+
+                            var rWordIndex = ProblemLoader.getRandomInt(0, chosenWordGroup.words.length - 1);
+                            chosenWord = chosenWordGroup.words[rWordIndex];
+
+                            textValue = getModifiedWordText(chosenWord, modifier);
+                        }
+
+                        return { textValue: textValue, possibleValuesDebug: wordSet.rawText, chosenWordGroup: chosenWordGroup, chosenWord: chosenWord, numberValue: null };
+                    };
+
                     var getValue = function (valInner, modifier) {
                         var val = { numberValue: null, textValue: null, possibleValuesDebug: "" };
 
-                        if (valInner.exact !== null) {
+                        if (valInner.wordSet) {
+                            val = getWordValue(valInner.wordSet, name, modifier);
+                        } else if (valInner.exact !== null) {
                             val = { numberValue: valInner.exact, possibleValuesDebug: "" + valInner.exact, textValue: null };
                         } else if (valInner.variableRef) {
                             var vRef = valInner.variableRef;
@@ -247,8 +320,8 @@ var Told;
 
                             val = vMatches[0].value;
                         } else if (valInner.operation) {
-                            var leftVal = getValue(valInner.operation.left, "");
-                            var rightVal = getValue(valInner.operation.right, "");
+                            var leftVal = getValue(valInner.operation.left, null);
+                            var rightVal = getValue(valInner.operation.right, null);
 
                             var op = valInner.operation.operator;
                             var nVal = 0;
@@ -272,24 +345,15 @@ var Told;
                             }
 
                             val = { numberValue: nVal, possibleValuesDebug: pVal, textValue: null };
-                        } else if (valInner.wordSet) {
-                            var wSet = valInner.wordSet;
-
-                            wSet.rawText;
-
-                            // TODO: Choose words from the word set correctly
-                            // TODO: Handle modifiers
-                            //throw "Not Implemented";
-                            val = { textValue: wSet.rawText, possibleValuesDebug: wSet.rawText, numberValue: null };
                         }
 
                         if (valInner.range) {
-                            var minVal = getValue(valInner.range.minValue, "");
-                            var maxVal = getValue(valInner.range.maxValue, "");
+                            var minVal = getValue(valInner.range.minValue, null);
+                            var maxVal = getValue(valInner.range.maxValue, null);
 
-                            if (val.numberValue == null) {
+                            if (val.numberValue === null) {
                                 // Create random range
-                                var nVal = Math.floor(minVal.numberValue + Math.random() * (maxVal.numberValue - minVal.numberValue));
+                                var nVal = ProblemLoader.getRandomInt(minVal.numberValue, maxVal.numberValue);
                                 val = { numberValue: nVal, possibleValuesDebug: "[" + minVal.possibleValuesDebug + "," + maxVal.possibleValuesDebug + "]", textValue: null };
                             } else {
                                 // Verify range
@@ -314,16 +378,10 @@ var Told;
                 var variables = [];
 
                 problem.question.phrases.concat(problem.answer.phrases).forEach(function (p) {
-                    if (p.reference != null) {
+                    if (p.reference !== null) {
                         var matching = problem.scope.allVariables.filter(function (v) {
-                            return v.name == p.reference.name;
+                            return v.name === p.reference.name;
                         });
-
-                        if (matching.length === 0) {
-                            matching = problem.scope.allVariables.filter(function (v) {
-                                return v.name + "s" == p.reference.name;
-                            });
-                        }
 
                         if (matching.length === 0) {
                             throw new Error("Unknown variable:'" + p.reference.name + "' in " + problem.questionRawText + "\r\nAnswer:\r\n" + problem.answerRawText);
@@ -332,7 +390,7 @@ var Told;
                         var foundVar = matching[matching.length - 1];
 
                         if (variables.filter(function (v) {
-                            return v.variable.name == foundVar.name && v.modifier == p.reference.modifier;
+                            return v.variable.name === foundVar.name && v.modifier.idText === p.reference.modifier.idText;
                         }).length === 0) {
                             variables.push({ variable: foundVar, modifier: p.reference.modifier });
                         }
@@ -383,7 +441,7 @@ var Told;
                 var rpStart = "(?:" + rpCaptureBeginBeforeBraces + "|" + rpCaptureBeginInsideBraces + ")";
                 var regexStart = new RegExp(rpStart);
 
-                var regexReference = /^([0-9a-zA-z]*[a-zA-z])('s|\\+s|-s|[0-9])?$/;
+                var regexReference = /^([0-9a-zA-z]*[a-zA-z])([0-9]+)?('s|\\+s|-s|\\?s|@)?$/;
 
                 var parseReference = function (refText) {
                     if (refText === "") {
@@ -392,7 +450,16 @@ var Told;
 
                     var m = refText.match(regexReference);
                     var name = m[1];
-                    var modifier = m[2] || "";
+
+                    var tag = parseInt(m[2] || "0");
+                    var partOfSpeechOption = m[3] === "'s" ? 2 /* Possessive */ : m[3] === "@" ? 1 /* Object */ : 0 /* Subject */;
+
+                    var singularOption = m[3] === "-s" ? 1 /* forceSingular */ : m[3] === "+s" ? 2 /* forcePlural */ : 0 /* matchNumber */;
+
+                    var idReference = "" + tag;
+                    var idText = tag + ";pos" + partOfSpeechOption + ";s" + singularOption;
+
+                    var modifier = { idReference: idReference, idText: idText, tag: tag, partOfSpeechOption: partOfSpeechOption, singularOption: singularOption };
 
                     return { rawText: refText, name: name, modifier: modifier };
                 };
@@ -409,7 +476,7 @@ var Told;
                     m = t.match(regexStart);
                 }
 
-                if (t != "") {
+                if (t !== "") {
                     throw new Error("Not all the text was captured. Ensure that each {brace} is closed properly.");
                 }
 
@@ -458,10 +525,10 @@ var Told;
                     var m = t.match(regexWord);
 
                     var mainText = m[1];
-                    var pluralModifier = m[2] || "";
-                    var genderModifier = m[3] || "";
+                    var pluralText = m[2] || "";
+                    var genderText = m[3] || "";
 
-                    return { rawText: text, mainText: mainText, pluralModifier: pluralModifier, genderModifier: genderModifier };
+                    return { rawText: text, mainText: mainText, pluralText: pluralText, genderText: genderText };
                 };
 
                 var parseWordGroup = function (text) {
@@ -532,7 +599,7 @@ var Told;
                 for (var iLine = 0; iLine < lines.length; iLine++) {
                     var line = lines[iLine].trim();
 
-                    if (line == "") {
+                    if (line === "") {
                         continue;
                     }
 
@@ -546,6 +613,10 @@ var Told;
                 }
 
                 return variables;
+            };
+
+            ProblemLoader.getRandomInt = function (minValue, maxValue) {
+                return Math.floor(minValue + Math.random() * (maxValue - minValue));
             };
             ProblemLoader.baseUrl = "";
             return ProblemLoader;
