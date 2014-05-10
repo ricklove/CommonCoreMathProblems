@@ -45,11 +45,18 @@
 
 - Calculate the sample values with possible ranges
 
+#### 15:40-16:05
+
+- Create a problem instance with the sample values
+
 #### NEXT
 
 - Calculate the word sample values
+
+#### FUTURE
+
 - Create a debug problem instance with the sample values and range
-- Create a problem instance with the sample values
+
 
 - Display debug view of the problem that shows the variable definition rawText
 - Display actual sample values of the variables (show next to definition in debug view)

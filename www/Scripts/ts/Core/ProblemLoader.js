@@ -172,13 +172,57 @@ var Told;
 
             ProblemLoader.createProblemInstance = function (problem, isDebug) {
                 if (typeof isDebug === "undefined") { isDebug = false; }
-                var sample = ProblemLoader.createSample(problem.sampleSet, isDebug);
+                var sample = ProblemLoader.createSample(problem.sampleSet);
 
-                throw "Not Implemented";
+                var createText = function (pText) {
+                    var t = "";
+
+                    // Go through the phrases and fill in the sample values
+                    pText.phrases.forEach(function (phrase) {
+                        if (phrase.plainText != "") {
+                            t += phrase.plainText;
+                        } else {
+                            var mVar = sample.values.filter(function (v) {
+                                return v.name === phrase.reference.name && v.modifier === phrase.reference.modifier;
+                            });
+
+                            if (mVar.length === 0) {
+                                mVar = sample.values.filter(function (v) {
+                                    return v.name + "s" === phrase.reference.name && v.modifier === phrase.reference.modifier;
+                                });
+                            }
+
+                            if (mVar.length === 0) {
+                                throw new Error("A variable is missing: " + phrase.reference.name);
+                            }
+
+                            if (mVar.length > 1) {
+                                throw new Error("LOGIC ERROR: A variable is duplicated: " + phrase.reference.name);
+                            }
+
+                            var val = mVar[0].value;
+                            if (val.numberValue != null) {
+                                t += val.numberValue;
+                            } else {
+                                t += val.textValue;
+                            }
+
+                            if (isDebug) {
+                                t += "<" + val.possibleValuesDebug + ">";
+                            }
+                        }
+                    });
+
+                    return t;
+                };
+
+                var qText = createText(problem.question);
+                var aText = createText(problem.answer);
+
+                return { question: qText, answer: aText, problemSource: problem, sampleSource: sample };
             };
 
-            ProblemLoader.createSample = function (sampleSet, isDebug) {
-                if (typeof isDebug === "undefined") { isDebug = false; }
+            ProblemLoader.createSample = function (sampleSet) {
                 var values = [];
                 var isOk = false;
 
@@ -187,10 +231,10 @@ var Told;
                     isOk = true;
 
                     var getValue = function (valInner, modifier) {
-                        var val = { possibleValuesDebug: "" };
+                        var val = { numberValue: null, textValue: null, possibleValuesDebug: "" };
 
                         if (valInner.exact !== null) {
-                            val = { numberValue: valInner.exact, possibleValuesDebug: "" + valInner.exact };
+                            val = { numberValue: valInner.exact, possibleValuesDebug: "" + valInner.exact, textValue: null };
                         } else if (valInner.variableRef) {
                             var vRef = valInner.variableRef;
                             var vMatches = values.filter(function (v2) {
@@ -212,22 +256,22 @@ var Told;
 
                             if (op === 0 /* add */) {
                                 nVal = leftVal.numberValue + rightVal.numberValue;
-                                pVal = leftVal.possibleValuesDebug + " + " + rightVal.possibleValuesDebug;
+                                pVal = leftVal.possibleValuesDebug + "+" + rightVal.possibleValuesDebug;
                             } else if (op === 1 /* subtract */) {
                                 nVal = leftVal.numberValue - rightVal.numberValue;
-                                pVal = leftVal.possibleValuesDebug + " - " + rightVal.possibleValuesDebug;
+                                pVal = leftVal.possibleValuesDebug + "-" + rightVal.possibleValuesDebug;
                             } else if (op === 2 /* multiply */) {
                                 nVal = leftVal.numberValue * rightVal.numberValue;
-                                pVal = leftVal.possibleValuesDebug + " * " + rightVal.possibleValuesDebug;
+                                pVal = leftVal.possibleValuesDebug + "*" + rightVal.possibleValuesDebug;
                             } else if (op === 3 /* divide */) {
                                 nVal = leftVal.numberValue / rightVal.numberValue;
-                                pVal = leftVal.possibleValuesDebug + " / " + rightVal.possibleValuesDebug;
+                                pVal = leftVal.possibleValuesDebug + "/" + rightVal.possibleValuesDebug;
                             } else if (op === 4 /* modulo */) {
                                 nVal = leftVal.numberValue % rightVal.numberValue;
-                                pVal = leftVal.possibleValuesDebug + " % " + rightVal.possibleValuesDebug;
+                                pVal = leftVal.possibleValuesDebug + "%" + rightVal.possibleValuesDebug;
                             }
 
-                            val = { numberValue: nVal, possibleValuesDebug: pVal };
+                            val = { numberValue: nVal, possibleValuesDebug: pVal, textValue: null };
                         } else if (valInner.wordSet) {
                             var wSet = valInner.wordSet;
 
@@ -236,7 +280,7 @@ var Told;
                             // TODO: Choose words from the word set correctly
                             // TODO: Handle modifiers
                             //throw "Not Implemented";
-                            val = { textValue: wSet.rawText, possibleValuesDebug: wSet.rawText };
+                            val = { textValue: wSet.rawText, possibleValuesDebug: wSet.rawText, numberValue: null };
                         }
 
                         if (valInner.range) {
@@ -246,7 +290,7 @@ var Told;
                             if (val.numberValue == null) {
                                 // Create random range
                                 var nVal = Math.floor(minVal.numberValue + Math.random() * (maxVal.numberValue - minVal.numberValue));
-                                val = { numberValue: nVal, possibleValuesDebug: "[" + minVal.possibleValuesDebug + "," + maxVal.possibleValuesDebug + "]" };
+                                val = { numberValue: nVal, possibleValuesDebug: "[" + minVal.possibleValuesDebug + "," + maxVal.possibleValuesDebug + "]", textValue: null };
                             } else {
                                 // Verify range
                                 if (val.numberValue < minVal.numberValue || val.numberValue > maxVal.numberValue) {
@@ -259,7 +303,7 @@ var Told;
                     };
 
                     sampleSet.variables.forEach(function (v) {
-                        values.push({ name: v.variable.name, value: getValue(v.variable.value, v.modifier) });
+                        values.push({ name: v.variable.name, modifier: v.modifier, value: getValue(v.variable.value, v.modifier) });
                     });
                 }
 

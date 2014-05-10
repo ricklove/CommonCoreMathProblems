@@ -89,13 +89,14 @@ module Told.CommonCoreMathProblems {
     }
 
     export interface ISamplePoint {
-        numberValue?: number;
-        textValue?: string;
+        numberValue: number;
+        textValue: string;
         possibleValuesDebug: string;
     }
 
     export interface ISampleValue {
         name: string;
+        modifier: string;
         value: ISamplePoint;
     }
 
@@ -299,13 +300,54 @@ module Told.CommonCoreMathProblems {
 
         static createProblemInstance(problem: IProblem, isDebug: boolean= false): IProblemInstance {
 
-            var sample = ProblemLoader.createSample(problem.sampleSet, isDebug);
+            var sample = ProblemLoader.createSample(problem.sampleSet);
 
-            //TODO: Go through the problem text and fill in the sample values
-            throw "Not Implemented";
+            var createText = function (pText: IProblemText): string {
+                var t = "";
+                // Go through the phrases and fill in the sample values
+                pText.phrases.forEach(function (phrase) {
+                    if (phrase.plainText != "") {
+                        t += phrase.plainText;
+                    }
+                    else {
+
+                        var mVar = sample.values.filter(function (v) { return v.name === phrase.reference.name && v.modifier === phrase.reference.modifier; });
+
+                        if (mVar.length === 0) {
+                            mVar = sample.values.filter(function (v) { return v.name + "s" === phrase.reference.name && v.modifier === phrase.reference.modifier; });
+                        }
+
+                        if (mVar.length === 0) {
+                            throw new Error("A variable is missing: " + phrase.reference.name);
+                        }
+
+                        if (mVar.length > 1) {
+                            throw new Error("LOGIC ERROR: A variable is duplicated: " + phrase.reference.name);
+                        }
+
+                        var val = mVar[0].value;
+                        if (val.numberValue != null) {
+                            t += val.numberValue;
+                        } else {
+                            t += val.textValue;
+                        }
+
+                        if (isDebug) {
+                            t += "<" + val.possibleValuesDebug + ">";
+                        }
+                    }
+                });
+
+                return t;
+            };
+
+            var qText = createText(problem.question);
+            var aText = createText(problem.answer);
+
+            return { question: qText, answer: aText, problemSource: problem, sampleSource: sample };
         }
 
-        static createSample(sampleSet: ISampleSet, isDebug: boolean= false): ISample {
+        static createSample(sampleSet: ISampleSet): ISample {
 
             var values: ISampleValue[] = [];
             var isOk = false;
@@ -317,10 +359,10 @@ module Told.CommonCoreMathProblems {
 
                 var getValue = function (valInner: IValue, modifier: string): ISamplePoint {
 
-                    var val: ISamplePoint = { possibleValuesDebug: "" };
+                    var val: ISamplePoint = { numberValue: null, textValue: null, possibleValuesDebug: "" };
 
                     if (valInner.exact !== null) {
-                        val = { numberValue: valInner.exact, possibleValuesDebug: "" + valInner.exact };
+                        val = { numberValue: valInner.exact, possibleValuesDebug: "" + valInner.exact, textValue: null };
                     } else if (valInner.variableRef) {
 
                         var vRef = valInner.variableRef;
@@ -343,22 +385,22 @@ module Told.CommonCoreMathProblems {
 
                         if (op === Operator.add) {
                             nVal = leftVal.numberValue + rightVal.numberValue;
-                            pVal = leftVal.possibleValuesDebug + " + " + rightVal.possibleValuesDebug;
+                            pVal = leftVal.possibleValuesDebug + "+" + rightVal.possibleValuesDebug;
                         } else if (op === Operator.subtract) {
                             nVal = leftVal.numberValue - rightVal.numberValue;
-                            pVal = leftVal.possibleValuesDebug + " - " + rightVal.possibleValuesDebug;
+                            pVal = leftVal.possibleValuesDebug + "-" + rightVal.possibleValuesDebug;
                         } else if (op === Operator.multiply) {
                             nVal = leftVal.numberValue * rightVal.numberValue;
-                            pVal = leftVal.possibleValuesDebug + " * " + rightVal.possibleValuesDebug;
+                            pVal = leftVal.possibleValuesDebug + "*" + rightVal.possibleValuesDebug;
                         } else if (op === Operator.divide) {
                             nVal = leftVal.numberValue / rightVal.numberValue;
-                            pVal = leftVal.possibleValuesDebug + " / " + rightVal.possibleValuesDebug;
+                            pVal = leftVal.possibleValuesDebug + "/" + rightVal.possibleValuesDebug;
                         } else if (op === Operator.modulo) {
                             nVal = leftVal.numberValue % rightVal.numberValue;
-                            pVal = leftVal.possibleValuesDebug + " % " + rightVal.possibleValuesDebug;
+                            pVal = leftVal.possibleValuesDebug + "%" + rightVal.possibleValuesDebug;
                         }
 
-                        val = { numberValue: nVal, possibleValuesDebug: pVal };
+                        val = { numberValue: nVal, possibleValuesDebug: pVal, textValue: null };
 
                     } else if (valInner.wordSet) {
 
@@ -370,7 +412,7 @@ module Told.CommonCoreMathProblems {
                         // TODO: Handle modifiers
 
                         //throw "Not Implemented";
-                        val = { textValue: wSet.rawText, possibleValuesDebug: wSet.rawText };
+                        val = { textValue: wSet.rawText, possibleValuesDebug: wSet.rawText, numberValue: null };
                     }
 
                     if (valInner.range) {
@@ -381,7 +423,7 @@ module Told.CommonCoreMathProblems {
                         if (val.numberValue == null) {
                             // Create random range
                             var nVal = Math.floor(minVal.numberValue + Math.random() * (maxVal.numberValue - minVal.numberValue));
-                            val = { numberValue: nVal, possibleValuesDebug: "[" + minVal.possibleValuesDebug + "," + maxVal.possibleValuesDebug + "]" };
+                            val = { numberValue: nVal, possibleValuesDebug: "[" + minVal.possibleValuesDebug + "," + maxVal.possibleValuesDebug + "]", textValue: null };
 
                         } else {
                             // Verify range
@@ -396,7 +438,7 @@ module Told.CommonCoreMathProblems {
                 };
 
                 sampleSet.variables.forEach(function (v) {
-                    values.push({ name: v.variable.name, value: getValue(v.variable.value, v.modifier) });
+                    values.push({ name: v.variable.name, modifier: v.modifier, value: getValue(v.variable.value, v.modifier) });
                 });
             }
 
