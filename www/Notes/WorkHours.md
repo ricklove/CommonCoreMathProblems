@@ -55,9 +55,17 @@
 - Calculate the word sample values
 - Create some problem instances with the sample values
 
-#### FUTURE
+### 2014-05-12
+
+#### 6:00-7:40
+#### 11:00-11:30
+#### 15:10-
 
 - getModifiedWordText
+
+#### FUTURE
+
+	- BUG: Variables are evaluated in order of definition (not in order of text, therefore the preceeding values references must be found before re-ordering)
 
 - Display problems in html
 - Handle to || of the problemText

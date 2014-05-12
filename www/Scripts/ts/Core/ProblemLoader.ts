@@ -75,8 +75,9 @@ module Told.CommonCoreMathProblems {
     }
 
     export interface IModifier {
-        idReference: string;
-        idText: string;
+        instanceModKey: string;
+        referenceModKey: string;
+
         tag: number;
         singularOption: SingularOption;
         partOfSpeechOption: PartOfSpeechOption;
@@ -84,8 +85,11 @@ module Told.CommonCoreMathProblems {
 
     export interface IReference {
         rawText: string;
+        referenceID: number;
         name: string;
         modifier: IModifier;
+
+        variableType: IVariable;
     }
 
     export interface IPhrase {
@@ -98,32 +102,45 @@ module Told.CommonCoreMathProblems {
         phrases: IPhrase[];
     }
 
-    export interface IVariableWithModifier {
-        variable: IVariable;
-        modifier: IModifier;
+    export enum SampleValueType {
+        numberValue,
+        nameValue,
+        otherWordValue
     }
 
-    export interface ISamplePoint {
-        numberValue: number;
-        textValue: string;
+    export interface ISampleInstanceValue {
+        hasError: boolean;
+        valueType: SampleValueType;
+
+        chosenNumberValue: number;
+        chosenWord: IWord;
+        chosenWordGroup: IWordGroup;
+
         possibleValuesDebug: string;
     }
 
-    export interface ISampleValue {
-        name: string;
-        modifier: IModifier;
-        value: ISamplePoint;
+    export interface ISampleInstance {
+        type: IVariable;
+        instanceModKey: string;
 
-        chosenWord?: IWord;
-        chosenWordGroup?: IWordGroup;
+        value: ISampleInstanceValue;
+    }
+
+    export interface ISampleExpression {
+        referenceID: number;
+        text: string;
+        possibleValuesDebug: string;
     }
 
     export interface ISample {
-        values: ISampleValue[];
+        references: IReference[];
+        sortedReferences: IReference[];
+        instances: ISampleInstance[];
+        expressions: { [referenceID: number]: ISampleExpression };
     }
 
     export interface ISampleSet {
-        variables: IVariableWithModifier[];
+        references: IReference[];
         sampleDebug: string;
         samples: ISample[];
     }
@@ -308,6 +325,9 @@ module Told.CommonCoreMathProblems {
             var breakdance3 = true;
 
             // Calculate a debug problemInstance for each problem
+            // DEBUG: Target 1 problem
+            problems = problems.slice(2, 3);
+
             problems.forEach(function (p) {
                 p.problemInstanceDebug = ProblemLoader.createProblemInstance(p, true);
 
@@ -323,7 +343,10 @@ module Told.CommonCoreMathProblems {
 
         static createProblemInstance(problem: IProblem, isDebug: boolean= false): IProblemInstance {
 
-            var sample = ProblemLoader.createSample(problem.sampleSet);
+            var sample = ProblemLoader.createSample(problem.sampleSet, problem.scope);
+            ProblemLoader.populateSampleExpressions(sample);
+
+            problem.sampleSet.samples.push(sample);
 
             var createText = function (pText: IProblemText): string {
                 var t = "";
@@ -334,25 +357,16 @@ module Told.CommonCoreMathProblems {
                     }
                     else {
 
-                        var mVar = sample.values.filter(function (v) { return v.name === phrase.reference.name && v.modifier.idText === phrase.reference.modifier.idText; });
+                        var mExpression = sample.expressions[phrase.reference.referenceID];
 
-                        if (mVar.length === 0) {
+                        if (mExpression === undefined) {
                             throw new Error("A variable is missing: " + phrase.reference.name);
                         }
 
-                        if (mVar.length > 1) {
-                            throw new Error("LOGIC ERROR: A variable is duplicated: " + phrase.reference.name);
-                        }
-
-                        var val = mVar[0].value;
-                        if (val.numberValue !== null) {
-                            t += val.numberValue;
-                        } else {
-                            t += val.textValue;
-                        }
+                        t += mExpression.text;
 
                         if (isDebug) {
-                            t += "<" + val.possibleValuesDebug + ">";
+                            t += "<" + mExpression.possibleValuesDebug + ">";
                         }
                     }
                 });
@@ -366,152 +380,313 @@ module Told.CommonCoreMathProblems {
             return { question: qText, answer: aText, problemSource: problem, sampleSource: sample };
         }
 
-        static createSample(sampleSet: ISampleSet): ISample {
+        static populateSampleExpressions(sample: ISample) {
 
-            var values: ISampleValue[] = [];
-            var isOk = false;
+            var getModifiedWordText = function (word: IWord, modifier: IModifier, preceedingNameMainText: string, preceedingNumberValue: number): string {
 
-            while (!isOk) {
+                var isFirst = word.mainText !== preceedingNameMainText;
 
-                values = [];
-                isOk = true;
-
-                var getModifiedWordText = function (word: IWord, modifier: IModifier): string {
-                    //throw "Not Implemented";
-
-                    // TODO: Implement this
-                    return word.mainText;
-                };
-
-                var getWordValue = function (wordSet: IWordSet, name: string, modifier: IModifier): ISamplePoint {
-
-                    var textValue = "";
-                    var chosenWordGroup: IWordGroup = null;
-                    var chosenWord: IWord = null;
-
-                    // Check for already existing group
-                    var mSameName = values.filter(function (v2) { return v2.name === name; });
-                    var mSameReference = mSameName.filter(function (v2) { return v2.modifier.idReference === modifier.idReference; });
-                    var mSameText = mSameReference.filter(function (v2) { return v2.modifier.idText === modifier.idText; });
-
-                    if (mSameText.length > 0) {
-                        textValue = mSameText[0].value.textValue;
-                        chosenWordGroup = mSameText[0].chosenWordGroup;
-                        chosenWord = mSameText[0].chosenWord;
-                    } else if (mSameReference.length > 0) {
-                        textValue = getModifiedWordText(mSameReference[0].chosenWord, modifier);
-                        chosenWordGroup = mSameReference[0].chosenWordGroup;
-                        chosenWord = mSameReference[0].chosenWord;
-                    } else if (mSameName.length > 0) {
-
-                        // Choose different random word from group
-                        chosenWordGroup = mSameName[0].chosenWordGroup;
-
-                        var remainingWords = chosenWordGroup.words.filter(function (w) {
-                            return !mSameName.some(function (s) { return s.chosenWord.mainText === w.mainText; });
-                        });
-
-                        var rWordIndex = ProblemLoader.getRandomInt(0, remainingWords.length - 1);
-                        chosenWord = remainingWords[rWordIndex];
-
-                        textValue = getModifiedWordText(chosenWord, modifier);
-                    } else {
-                        // Choose random group and random word
-                        var gIndex = ProblemLoader.getRandomInt(0, wordSet.groups.length - 1);
-                        chosenWordGroup = wordSet.groups[gIndex];
-
-                        var rWordIndex = ProblemLoader.getRandomInt(0, chosenWordGroup.words.length - 1);
-                        chosenWord = chosenWordGroup.words[rWordIndex];
-
-                        textValue = getModifiedWordText(chosenWord, modifier);
-                    }
-
-                    return { textValue: textValue, possibleValuesDebug: wordSet.rawText, chosenWordGroup: chosenWordGroup, chosenWord: chosenWord, numberValue: null };
-                };
-
-                var getValue = function (valInner: IValue, modifier: IModifier): ISamplePoint {
-
-                    var val: ISamplePoint = { numberValue: null, textValue: null, possibleValuesDebug: "" };
-
-                    if (valInner.wordSet) {
-                        val = getWordValue(valInner.wordSet, name, modifier);
-                    } else if (valInner.exact !== null) {
-                        val = { numberValue: valInner.exact, possibleValuesDebug: "" + valInner.exact, textValue: null };
-                    } else if (valInner.variableRef) {
-
-                        var vRef = valInner.variableRef;
-                        var vMatches = values.filter(function (v2) { return v2.name === vRef; });
-
-                        if (vMatches.length !== 1) {
-                            throw new Error("Ambiguous VariableRef: (Variable Declarations may be out of order)" + valInner.variableRef);
-                        }
-
-                        val = vMatches[0].value;
-
-                    } else if (valInner.operation) {
-
-                        var leftVal = getValue(valInner.operation.left, null);
-                        var rightVal = getValue(valInner.operation.right, null);
-
-                        var op = valInner.operation.operator;
-                        var nVal = 0;
-                        var pVal = "";
-
-                        if (op === Operator.add) {
-                            nVal = leftVal.numberValue + rightVal.numberValue;
-                            pVal = leftVal.possibleValuesDebug + "+" + rightVal.possibleValuesDebug;
-                        } else if (op === Operator.subtract) {
-                            nVal = leftVal.numberValue - rightVal.numberValue;
-                            pVal = leftVal.possibleValuesDebug + "-" + rightVal.possibleValuesDebug;
-                        } else if (op === Operator.multiply) {
-                            nVal = leftVal.numberValue * rightVal.numberValue;
-                            pVal = leftVal.possibleValuesDebug + "*" + rightVal.possibleValuesDebug;
-                        } else if (op === Operator.divide) {
-                            nVal = leftVal.numberValue / rightVal.numberValue;
-                            pVal = leftVal.possibleValuesDebug + "/" + rightVal.possibleValuesDebug;
-                        } else if (op === Operator.modulo) {
-                            nVal = leftVal.numberValue % rightVal.numberValue;
-                            pVal = leftVal.possibleValuesDebug + "%" + rightVal.possibleValuesDebug;
-                        }
-
-                        val = { numberValue: nVal, possibleValuesDebug: pVal, textValue: null };
-
-                    }
-
-                    if (valInner.range) {
-
-                        var minVal = getValue(valInner.range.minValue, null);
-                        var maxVal = getValue(valInner.range.maxValue, null);
-
-                        if (val.numberValue === null) {
-                            // Create random range
-                            var nVal = ProblemLoader.getRandomInt(minVal.numberValue, maxVal.numberValue);
-                            val = { numberValue: nVal, possibleValuesDebug: "[" + minVal.possibleValuesDebug + "," + maxVal.possibleValuesDebug + "]", textValue: null };
-
+                // If A person
+                if (word.genderText !== "") {
+                    if (modifier.partOfSpeechOption === PartOfSpeechOption.Subject) {
+                        if (isFirst) {
+                            return word.mainText;
                         } else {
-                            // Verify range
-                            if (val.numberValue < minVal.numberValue ||
-                                val.numberValue > maxVal.numberValue) {
-                                isOk = false;
+                            return word.genderText;
+                        }
+                    } else if (modifier.partOfSpeechOption === PartOfSpeechOption.Object) {
+                        if (isFirst) {
+                            return word.mainText;
+                        } else {
+                            if (word.genderText === "he") {
+                                return "him";
+                            } else {
+                                return "her";
+                            }
+                        }
+                    } else if (modifier.partOfSpeechOption === PartOfSpeechOption.Possessive) {
+                        if (isFirst) {
+                            return word.mainText + "'s";
+                        } else {
+                            if (word.genderText === "he") {
+                                return "his";
+                            } else {
+                                return "her";
                             }
                         }
                     }
+                } else {
+                    // If Not a person
+                    var shouldShowSingular = false;
 
-                    return val;
+                    if (modifier.singularOption === SingularOption.forceSingular) {
+                        shouldShowSingular = true;
+                    } else if (modifier.singularOption === SingularOption.forcePlural) {
+                        shouldShowSingular = false;
+                    } else {
+                        shouldShowSingular = preceedingNumberValue === 1;
+                    }
+
+                    if (shouldShowSingular) {
+                        return word.mainText;
+                    } else {
+                        if (word.pluralText === "") {
+                            return word.mainText;
+                        } else if (word.pluralText === "s") {
+                            return word.mainText + "s";
+                        } else if (word.pluralText === "es") {
+                            return word.mainText + "es";
+                        } else {
+                            return word.pluralText;
+                        }
+                    }
+                }
+
+                return word.mainText;
+            };
+
+            sample.references.forEach(function (ref) {
+
+                var mInstance = sample.instances.filter(function (instance) {
+                    return instance.type.name === ref.name && instance.instanceModKey === ref.modifier.instanceModKey
+                });
+
+                if (mInstance.length > 1) {
+                    throw new Error("More than one instance exists for the same reference" + ref.rawText);
+                } else if (mInstance.length === 0) {
+                    throw new Error("No instance exists for the reference: " + ref.rawText);
+                }
+
+                var instance = mInstance[0];
+
+                if (instance.value.valueType === SampleValueType.numberValue) {
+                    sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: "" + instance.value.chosenNumberValue, possibleValuesDebug: instance.value.possibleValuesDebug };
+                } else {
+                    // DEBUG: Use the raw Text for the text before getting the actual text for the modification
+                    sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: instance.value.chosenWord.rawText, possibleValuesDebug: instance.value.possibleValuesDebug };
+                }
+            });
+
+            //// Get preceeding number
+            //// Get preceeding name
+            //var numValues = curValues.slice(curValues.length - 2).filter(function (v3) { return v3.value.numberValue != null; });
+            //var nameValues = curValues.filter(function (v3) { return v3.value.isName; });
+
+            //var preceedingNumber: number = numValues.length > 0 ? numValues[numValues.length - 1].value.numberValue : 1;
+            //var preceedingName: string = nameValues.length > 0 ? nameValues[nameValues.length - 1].value.chosenWord.mainText : "";
+
+            //var mSameText = mSameReference.filter(function (curInstance) { return curInstance.modifier.idText === modifier.idText; });
+
+            //if (mSameText.length > 0) {
+            //    textValue = mSameText[0].value.textValue;
+            //    chosenWordGroup = mSameText[0].value.chosenWordGroup;
+            //    chosenWord = mSameText[0].value.chosenWord;
+            //} else
+            //textValue = getModifiedWordText(mSameReference[0].value.chosenWord, modifier, preceedingName, preceedingNumber);
+            //textValue = getModifiedWordText(chosenWord, modifier, preceedingName, preceedingNumber);
+
+        }
+
+        static createSample(sampleSet: ISampleSet, scope: IScope): ISample {
+
+            var getWordValue = function (curInstances: ISampleInstance[], wordSet: IWordSet, typeName: string, instanceModKey: string): ISampleInstanceValue {
+
+                var chosenWordGroup: IWordGroup = null;
+                var chosenWord: IWord = null;
+
+                // Check for already existing
+                var mSameType = curInstances.filter(function (curInstance) { return curInstance.type.name === typeName; });
+                var mSameInstance = mSameType.filter(function (curInstance) { return curInstance.instanceModKey === instanceModKey; });
+
+                if (mSameInstance.length > 0) {
+
+                    chosenWordGroup = mSameInstance[0].value.chosenWordGroup;
+                    chosenWord = mSameInstance[0].value.chosenWord;
+
+                } else if (mSameType.length > 0) {
+
+                    // Choose different random word from group
+                    chosenWordGroup = mSameType[0].value.chosenWordGroup;
+
+                    var remainingWords = chosenWordGroup.words.filter(function (w) {
+                        return !mSameType.some(function (s) { return s.value.chosenWord.mainText === w.mainText; });
+                    });
+
+                    var rWordIndex = ProblemLoader.getRandomInt(0, remainingWords.length - 1);
+                    chosenWord = remainingWords[rWordIndex];
+
+                } else {
+                    // Choose random group and random word
+                    var gIndex = ProblemLoader.getRandomInt(0, wordSet.groups.length - 1);
+                    chosenWordGroup = wordSet.groups[gIndex];
+
+                    var rWordIndex = ProblemLoader.getRandomInt(0, chosenWordGroup.words.length - 1);
+                    chosenWord = chosenWordGroup.words[rWordIndex];
+                }
+
+                var valueType = chosenWord.genderText !== "" ? SampleValueType.nameValue : SampleValueType.otherWordValue;
+
+                return {
+                    chosenWordGroup: chosenWordGroup, chosenWord: chosenWord, valueType: valueType,
+                    possibleValuesDebug: wordSet.rawText,
+                    hasError: false, chosenNumberValue: null
+                };
+            };
+
+            var getNumberValue = function (curValues: ISampleInstance[], valInner: IValue): ISampleInstanceValue {
+
+                var val: ISampleInstanceValue = {
+                    chosenNumberValue: null, chosenWord: null, chosenWordGroup: null,
+                    valueType: SampleValueType.numberValue, possibleValuesDebug: "",
+                    hasError: false
                 };
 
-                sampleSet.variables.forEach(function (v) {
-                    values.push({ name: v.variable.name, modifier: v.modifier, value: getValue(v.variable.value, v.modifier) });
+                if (valInner.exact !== null) {
+
+                    val.chosenNumberValue = valInner.exact;
+                    val.possibleValuesDebug = "" + valInner.exact;
+
+                } else if (valInner.variableRef) {
+
+                    var typeName = valInner.variableRef;
+                    var mInstance = curValues.filter(function (curInstance) { return curInstance.type.name === typeName; });
+
+                    if (mInstance.length !== 1) {
+                        throw new Error("Ambiguous Variable Reference: (Variable Declarations may be out of order)" + typeName);
+                    }
+
+                    val = mInstance[0].value;
+
+                } else if (valInner.operation) {
+
+                    var leftVal = getNumberValue(curValues, valInner.operation.left);
+                    var rightVal = getNumberValue(curValues, valInner.operation.right);
+
+                    var op = valInner.operation.operator;
+                    var nVal = 0;
+                    var pVal = "";
+
+                    if (op === Operator.add) {
+                        nVal = leftVal.chosenNumberValue + rightVal.chosenNumberValue;
+                        pVal = leftVal.possibleValuesDebug + "+" + rightVal.possibleValuesDebug;
+                    } else if (op === Operator.subtract) {
+                        nVal = leftVal.chosenNumberValue - rightVal.chosenNumberValue;
+                        pVal = leftVal.possibleValuesDebug + "-" + rightVal.possibleValuesDebug;
+                    } else if (op === Operator.multiply) {
+                        nVal = leftVal.chosenNumberValue * rightVal.chosenNumberValue;
+                        pVal = leftVal.possibleValuesDebug + "*" + rightVal.possibleValuesDebug;
+                    } else if (op === Operator.divide) {
+                        nVal = leftVal.chosenNumberValue / rightVal.chosenNumberValue;
+                        pVal = leftVal.possibleValuesDebug + "/" + rightVal.possibleValuesDebug;
+                    } else if (op === Operator.modulo) {
+                        nVal = leftVal.chosenNumberValue % rightVal.chosenNumberValue;
+                        pVal = leftVal.possibleValuesDebug + "%" + rightVal.possibleValuesDebug;
+                    }
+
+                    val.chosenNumberValue = nVal;
+                    val.possibleValuesDebug = pVal;
+
+                }
+
+                if (valInner.range) {
+
+                    var minVal = getNumberValue(curValues, valInner.range.minValue);
+                    var maxVal = getNumberValue(curValues, valInner.range.maxValue);
+
+                    if (val.chosenNumberValue === null) {
+                        // Create random range
+                        var nVal = ProblemLoader.getRandomInt(minVal.chosenNumberValue, maxVal.chosenNumberValue);
+                        var pVal = "[" + minVal.possibleValuesDebug + "," + maxVal.possibleValuesDebug + "]";
+
+                        val.chosenNumberValue = nVal;
+                        val.possibleValuesDebug = pVal;
+
+                    } else {
+                        // Verify range
+                        if (val.chosenNumberValue < minVal.chosenNumberValue ||
+                            val.chosenNumberValue > maxVal.chosenNumberValue) {
+                            // Out of range
+                            val.hasError = true;
+                        }
+                    }
+                }
+
+                return val;
+            };
+
+            var getValue = function (curValues: ISampleInstance[], valInner: IValue, typeName: string, instanceModKey: string): ISampleInstanceValue {
+
+                if (valInner.wordSet) {
+                    return getWordValue(curValues, valInner.wordSet, typeName, instanceModKey);
+                } else {
+                    return getNumberValue(curValues, valInner);
+                }
+            };
+
+
+            // Calculate Instance values (by order of def)
+            var sampleSetDebug = sampleSet;
+            var instances: ISampleInstance[] = [];
+            var hasError = true;
+
+            while (hasError) {
+
+                instances = [];
+                hasError = false;
+
+                var unsortedRefs = sampleSet.references.slice(0);
+
+                // Resort refences by order of variable type definition
+                var refs: IReference[] = [];
+
+                scope.allVariables.forEach(function (v) {
+
+                    var uMatching = unsortedRefs.filter(function (u) { return u.name === v.name; });
+
+                    uMatching.forEach(function (u) {
+                        var i = unsortedRefs.indexOf(u);
+                        if (i >= 0) {
+                            refs.push(unsortedRefs.splice(i, 1)[0]);
+                        }
+                    });
+
+                });
+
+                refs.forEach(function (r) {
+
+                    if (hasError) {
+                        // Skip remaining if error is encountered
+                        return;
+                    }
+
+                    // If reference does not have a instance, create a new instance value
+                    var mInstances = instances.filter(function (i) { return i.type === r.variableType && i.instanceModKey === r.modifier.instanceModKey });
+
+                    if (mInstances.length === 0) {
+
+                        var value = getValue(instances, r.variableType.value, r.name, r.modifier.instanceModKey);
+
+                        if (value.hasError) {
+                            hasError = true;
+                        }
+
+                        instances.push({ type: r.variableType, instanceModKey: r.modifier.instanceModKey, value: value });
+                    }
+
                 });
             }
 
-            return { values: values };
+            return { references:sampleSet.references, sortedReferences:refs, instances: instances, expressions: {} };
         }
 
         static createSampleSet(problem: IProblem): ISampleSet {
 
-            var variables: IVariableWithModifier[] = [];
+            var refs: IReference[] = [];
 
+            // Find all references (reference)
+            // Identify each variable type in the references (variable -> type)
+
+            // Find the type of each reference
             problem.question.phrases.concat(problem.answer.phrases).forEach(function (p) {
                 if (p.reference !== null) {
 
@@ -521,38 +696,27 @@ module Told.CommonCoreMathProblems {
                         throw new Error("Unknown variable:'" + p.reference.name + "' in " + problem.questionRawText + "\r\nAnswer:\r\n" + problem.answerRawText);
                     }
 
-                    var foundVar = matching[matching.length - 1];
+                    var foundVarType = matching[matching.length - 1];
 
-                    if (variables.filter(function (v) { return v.variable.name === foundVar.name && v.modifier.idText === p.reference.modifier.idText; }).length === 0) {
-                        variables.push({ variable: foundVar, modifier: p.reference.modifier });
-                    }
+                    p.reference.variableType = foundVarType;
+
+                    refs.push(p.reference);
+
+                    //// If no match found, then add it
+                    //if (refs.filter(function (v) { return v.variable.name === foundVar.name && v.modifier.idText === p.reference.modifier.idText; }).length === 0) {
+                    //    variables.push({ variable: foundVar, modifier: p.reference.modifier });
+                    //}
                 }
             });
 
 
-            // Resort variables by priority
-            var unsorted = variables;
-            variables = [];
-
-            problem.scope.allVariables.forEach(function (v) {
-
-                var uMatching = unsorted.filter(function (u) { return u.variable.name === v.name; });
-
-                uMatching.forEach(function (u) {
-                    var i = unsorted.indexOf(u);
-                    if (i >= 0) {
-                        variables.push(unsorted.splice(i, 1)[0]);
-                    }
-                });
-
-
-            });
-
             var sampleDebug = "";
 
-            variables.forEach(function (v) { sampleDebug += v.variable.rawText + "(" + v.modifier + ")\r\n"; });
+            refs.forEach(function (v) { sampleDebug += v.variableType.rawText + "(" + v.modifier + ")\r\n"; });
 
-            return { variables: variables, sampleDebug: sampleDebug, samples: [] };
+            return { references: refs, sampleDebug: sampleDebug, samples: [] };
+
+
         }
 
         static flattenContextVariables(contexts: IContext[]): IVariable[] {
@@ -568,6 +732,8 @@ module Told.CommonCoreMathProblems {
             return vars;
         }
 
+        static nextReferenceID: number = 0;
+
         static parseProblemText(text: string): IProblemText {
             var rpCaptureBeginBeforeBraces = "(^\\s*[^\\{\\}]+\\s*)(?:{|$)";
             var rpCaptureBeginInsideBraces = "(?:^\\{([^\\{\\}]+)\\})";
@@ -576,7 +742,7 @@ module Told.CommonCoreMathProblems {
 
             var regexReference = /^([0-9a-zA-z]*[a-zA-z])([0-9]+)?('s|\\+s|-s|\\?s|@)?$/;
 
-            var parseReference = function (refText: string): IReference {
+            var parseReference = function (referenceID: number, refText: string): IReference {
 
                 if (refText === "") {
                     return null;
@@ -596,12 +762,15 @@ module Told.CommonCoreMathProblems {
                     m[3] === "+s" ? SingularOption.forcePlural :
                     SingularOption.matchNumber;
 
-                var idReference = "" + tag;
-                var idText = tag + ";pos" + partOfSpeechOption + ";s" + singularOption;
+                var instanceModKey = "" + tag;
+                var referenceModKey = tag + ";pos=" + partOfSpeechOption + ";s=" + singularOption;
 
-                var modifier: IModifier = { idReference: idReference, idText: idText, tag: tag, partOfSpeechOption: partOfSpeechOption, singularOption: singularOption };
+                var modifier: IModifier = {
+                    instanceModKey: instanceModKey, referenceModKey: referenceModKey,
+                    tag: tag, partOfSpeechOption: partOfSpeechOption, singularOption: singularOption
+                };
 
-                return { rawText: refText, name: name, modifier: modifier };
+                return { referenceID: referenceID, rawText: refText, name: name, modifier: modifier, variableType: null };
             };
 
             var problemText: IProblemText = { rawText: text, phrases: [] };
@@ -610,11 +779,13 @@ module Told.CommonCoreMathProblems {
 
             while (m) {
 
-                problemText.phrases.push({ plainText: m[1] || "", reference: parseReference(m[2] || "") });
+                problemText.phrases.push({ plainText: m[1] || "", reference: parseReference(ProblemLoader.nextReferenceID, m[2] || "") });
 
                 var capturedPart = m[1] || ("{" + m[2] + "}");
                 t = t.substr(capturedPart.length);
                 m = t.match(regexStart);
+
+                ProblemLoader.nextReferenceID++;
             }
 
             if (t !== "") {
