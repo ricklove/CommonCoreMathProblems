@@ -8,6 +8,7 @@ var Told;
         (function (UI) {
             var MainViewModel = (function () {
                 function MainViewModel(providers) {
+                    this.problems = ko.observable(null);
                     if (providers == null) {
                         providers = Told.CommonCoreMathProblems.Data.createDefaultProviders();
                     }
@@ -16,7 +17,24 @@ var Told;
 
                     var self = this;
 
-                    Told.CommonCoreMathProblems.ProblemLoader.loadProblems();
+                    Told.CommonCoreMathProblems.ProblemLoader.loadProblems(function (problems) {
+                        var pUI = [];
+                        problems.forEach(function (p) {
+                            pUI.push({
+                                question: p.problemInstanceDebug.question.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\r\n/g, "<br/>"),
+                                answer: p.problemInstanceDebug.answer.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\r\n/g, "<br/>")
+                            });
+
+                            p.problemInstances.forEach(function (pi) {
+                                return pUI.push({
+                                    question: pi.question.replace(/\r\n/g, "<br/>"),
+                                    answer: pi.answer.replace(/\r\n/g, "<br/>")
+                                });
+                            });
+                        });
+
+                        self.problems(pUI);
+                    });
                 }
                 return MainViewModel;
             })();

@@ -25,6 +25,12 @@ var Told;
         })(CommonCoreMathProblems.PartOfSpeechOption || (CommonCoreMathProblems.PartOfSpeechOption = {}));
         var PartOfSpeechOption = CommonCoreMathProblems.PartOfSpeechOption;
 
+        (function (CapitalOption) {
+            CapitalOption[CapitalOption["Capitalize"] = 0] = "Capitalize";
+            CapitalOption[CapitalOption["DontCapitalize"] = 1] = "DontCapitalize";
+        })(CommonCoreMathProblems.CapitalOption || (CommonCoreMathProblems.CapitalOption = {}));
+        var CapitalOption = CommonCoreMathProblems.CapitalOption;
+
         (function (SampleValueType) {
             SampleValueType[SampleValueType["numberValue"] = 0] = "numberValue";
             SampleValueType[SampleValueType["nameValue"] = 1] = "nameValue";
@@ -62,8 +68,11 @@ var Told;
                 });
             };
 
-            ProblemLoader.loadProblems = function () {
-                ProblemLoader.loadProblemFiles(ProblemLoader.parseProblems);
+            ProblemLoader.loadProblems = function (onLoaded) {
+                ProblemLoader.loadProblemFiles(function (fileText) {
+                    var problems = ProblemLoader.parseProblems(fileText);
+                    onLoaded(problems);
+                });
             };
 
             ProblemLoader.parseProblems = function (fileText) {
@@ -185,8 +194,7 @@ var Told;
 
                 // Calculate a debug problemInstance for each problem
                 // DEBUG: Target 1 problem
-                problems = problems.slice(2, 3);
-
+                //problems = problems.slice(2, 3);
                 problems.forEach(function (p) {
                     p.problemInstanceDebug = ProblemLoader.createProblemInstance(p, true);
 
@@ -197,6 +205,8 @@ var Told;
                 });
 
                 var breakdance4 = true;
+
+                return problems;
             };
 
             ProblemLoader.createProblemInstance = function (problem, isDebug) {
@@ -239,34 +249,36 @@ var Told;
 
             ProblemLoader.populateSampleExpressions = function (sample) {
                 var getModifiedWordText = function (word, modifier, preceedingNameMainText, preceedingNumberValue) {
+                    var t = "";
+
                     var isFirst = word.mainText !== preceedingNameMainText;
 
                     // If A person
                     if (word.genderText !== "") {
                         if (modifier.partOfSpeechOption === 0 /* Subject */) {
                             if (isFirst) {
-                                return word.mainText;
+                                t = word.mainText;
                             } else {
-                                return word.genderText;
+                                t = word.genderText;
                             }
                         } else if (modifier.partOfSpeechOption === 1 /* Object */) {
                             if (isFirst) {
-                                return word.mainText;
+                                t = word.mainText;
                             } else {
                                 if (word.genderText === "he") {
-                                    return "him";
+                                    t = "him";
                                 } else {
-                                    return "her";
+                                    t = "her";
                                 }
                             }
                         } else if (modifier.partOfSpeechOption === 2 /* Possessive */) {
                             if (isFirst) {
-                                return word.mainText + "'s";
+                                t = word.mainText + "'s";
                             } else {
                                 if (word.genderText === "he") {
-                                    return "his";
+                                    t = "his";
                                 } else {
-                                    return "her";
+                                    t = "her";
                                 }
                             }
                         }
@@ -283,24 +295,34 @@ var Told;
                         }
 
                         if (shouldShowSingular) {
-                            return word.mainText;
+                            t = word.mainText;
                         } else {
                             if (word.pluralText === "") {
-                                return word.mainText;
+                                t = word.mainText;
                             } else if (word.pluralText === "s") {
-                                return word.mainText + "s";
+                                t = word.mainText + "s";
                             } else if (word.pluralText === "es") {
-                                return word.mainText + "es";
+                                t = word.mainText + "es";
                             } else {
-                                return word.pluralText;
+                                t = word.pluralText;
                             }
                         }
                     }
 
-                    return word.mainText;
+                    if (t === "") {
+                        t = word.mainText;
+                    }
+
+                    if (modifier.capitalOption === 0 /* Capitalize */) {
+                        t = t.substr(0, 1).toUpperCase() + t.substr(1);
+                    }
+
+                    return t;
                 };
 
-                sample.references.forEach(function (ref) {
+                var referenceValues = [];
+
+                sample.references.forEach(function (ref, iRef, refs) {
                     var mInstance = sample.instances.filter(function (instance) {
                         return instance.type.name === ref.name && instance.instanceModKey === ref.modifier.instanceModKey;
                     });
@@ -317,23 +339,26 @@ var Told;
                         sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: "" + instance.value.chosenNumberValue, possibleValuesDebug: instance.value.possibleValuesDebug };
                     } else {
                         // DEBUG: Use the raw Text for the text before getting the actual text for the modification
-                        sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: instance.value.chosenWord.rawText, possibleValuesDebug: instance.value.possibleValuesDebug };
+                        // sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: instance.value.chosenWord.rawText, possibleValuesDebug: instance.value.possibleValuesDebug };
+                        // Get preceeding number
+                        // Get preceeding name
+                        var numValues = referenceValues.slice(referenceValues.length - 2).filter(function (rv) {
+                            return rv.valueType === 0 /* numberValue */;
+                        });
+                        var nameValues = referenceValues.filter(function (rv) {
+                            return rv.valueType === 1 /* nameValue */;
+                        });
+
+                        var preceedingNumber = numValues.length > 0 ? numValues[numValues.length - 1].chosenNumberValue : 1;
+                        var preceedingName = nameValues.length > 0 ? nameValues[nameValues.length - 1].chosenWord.mainText : "";
+
+                        var textValue = getModifiedWordText(instance.value.chosenWord, ref.modifier, preceedingName, preceedingNumber);
+
+                        sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: textValue, possibleValuesDebug: instance.value.possibleValuesDebug };
                     }
+
+                    referenceValues.push(instance.value);
                 });
-                //// Get preceeding number
-                //// Get preceeding name
-                //var numValues = curValues.slice(curValues.length - 2).filter(function (v3) { return v3.value.numberValue != null; });
-                //var nameValues = curValues.filter(function (v3) { return v3.value.isName; });
-                //var preceedingNumber: number = numValues.length > 0 ? numValues[numValues.length - 1].value.numberValue : 1;
-                //var preceedingName: string = nameValues.length > 0 ? nameValues[nameValues.length - 1].value.chosenWord.mainText : "";
-                //var mSameText = mSameReference.filter(function (curInstance) { return curInstance.modifier.idText === modifier.idText; });
-                //if (mSameText.length > 0) {
-                //    textValue = mSameText[0].value.textValue;
-                //    chosenWordGroup = mSameText[0].value.chosenWordGroup;
-                //    chosenWord = mSameText[0].value.chosenWord;
-                //} else
-                //textValue = getModifiedWordText(mSameReference[0].value.chosenWord, modifier, preceedingName, preceedingNumber);
-                //textValue = getModifiedWordText(chosenWord, modifier, preceedingName, preceedingNumber);
             };
 
             ProblemLoader.createSample = function (sampleSet, scope) {
@@ -579,19 +604,22 @@ var Told;
                     }
 
                     var m = refText.match(regexReference);
-                    var name = m[1];
+                    var name = m[1].toLowerCase();
 
                     var tag = parseInt(m[2] || "0");
                     var partOfSpeechOption = m[3] === "'s" ? 2 /* Possessive */ : m[3] === "@" ? 1 /* Object */ : 0 /* Subject */;
 
                     var singularOption = m[3] === "-s" ? 1 /* forceSingular */ : m[3] === "+s" ? 2 /* forcePlural */ : 0 /* matchNumber */;
 
+                    var firstLetterOfName = m[1][0];
+                    var capitalOption = firstLetterOfName.toUpperCase() === firstLetterOfName ? 0 /* Capitalize */ : 1 /* DontCapitalize */;
+
                     var instanceModKey = "" + tag;
                     var referenceModKey = tag + ";pos=" + partOfSpeechOption + ";s=" + singularOption;
 
                     var modifier = {
                         instanceModKey: instanceModKey, referenceModKey: referenceModKey,
-                        tag: tag, partOfSpeechOption: partOfSpeechOption, singularOption: singularOption
+                        tag: tag, partOfSpeechOption: partOfSpeechOption, singularOption: singularOption, capitalOption: capitalOption
                     };
 
                     return { referenceID: referenceID, rawText: refText, name: name, modifier: modifier, variableType: null };
@@ -739,7 +767,7 @@ var Told;
                     }
 
                     var parts = line.split("=");
-                    var name = parts[0].trim();
+                    var name = parts[0].trim().toLowerCase();
                     var valueText = parts[1].trim();
 
                     var value = parseValue(valueText);
@@ -750,8 +778,8 @@ var Told;
                 return variables;
             };
 
-            ProblemLoader.getRandomInt = function (minValue, maxValue) {
-                return Math.floor(minValue + Math.random() * (maxValue - minValue));
+            ProblemLoader.getRandomInt = function (minimum, maximum) {
+                return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
             };
             ProblemLoader.baseUrl = "";
 

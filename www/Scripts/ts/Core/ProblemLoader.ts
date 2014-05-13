@@ -74,6 +74,11 @@ module Told.CommonCoreMathProblems {
         Possessive
     }
 
+    export enum CapitalOption {
+        Capitalize,
+        DontCapitalize
+    }
+
     export interface IModifier {
         instanceModKey: string;
         referenceModKey: string;
@@ -81,6 +86,7 @@ module Told.CommonCoreMathProblems {
         tag: number;
         singularOption: SingularOption;
         partOfSpeechOption: PartOfSpeechOption;
+        capitalOption: CapitalOption;
     }
 
     export interface IReference {
@@ -189,13 +195,16 @@ module Told.CommonCoreMathProblems {
 
         }
 
-        static loadProblems() {
+        static loadProblems(onLoaded: (problems: IProblem[]) => void) {
 
-            ProblemLoader.loadProblemFiles(ProblemLoader.parseProblems);
+            ProblemLoader.loadProblemFiles(function (fileText) {
+                var problems = ProblemLoader.parseProblems(fileText);
+                onLoaded(problems);
+            });
 
         }
 
-        static parseProblems(fileText: string) {
+        static parseProblems(fileText: string): IProblem[] {
             var lines = fileText.replace("\r\n", "\n").split("\n");
 
             var problems: IProblem[] = [];
@@ -326,7 +335,7 @@ module Told.CommonCoreMathProblems {
 
             // Calculate a debug problemInstance for each problem
             // DEBUG: Target 1 problem
-            problems = problems.slice(2, 3);
+            //problems = problems.slice(2, 3);
 
             problems.forEach(function (p) {
                 p.problemInstanceDebug = ProblemLoader.createProblemInstance(p, true);
@@ -339,6 +348,8 @@ module Told.CommonCoreMathProblems {
 
             var breakdance4 = true;
 
+
+            return problems;
         }
 
         static createProblemInstance(problem: IProblem, isDebug: boolean= false): IProblemInstance {
@@ -384,34 +395,36 @@ module Told.CommonCoreMathProblems {
 
             var getModifiedWordText = function (word: IWord, modifier: IModifier, preceedingNameMainText: string, preceedingNumberValue: number): string {
 
+                var t = "";
+
                 var isFirst = word.mainText !== preceedingNameMainText;
 
                 // If A person
                 if (word.genderText !== "") {
                     if (modifier.partOfSpeechOption === PartOfSpeechOption.Subject) {
                         if (isFirst) {
-                            return word.mainText;
+                            t = word.mainText;
                         } else {
-                            return word.genderText;
+                            t = word.genderText;
                         }
                     } else if (modifier.partOfSpeechOption === PartOfSpeechOption.Object) {
                         if (isFirst) {
-                            return word.mainText;
+                            t = word.mainText;
                         } else {
                             if (word.genderText === "he") {
-                                return "him";
+                                t = "him";
                             } else {
-                                return "her";
+                                t = "her";
                             }
                         }
                     } else if (modifier.partOfSpeechOption === PartOfSpeechOption.Possessive) {
                         if (isFirst) {
-                            return word.mainText + "'s";
+                            t = word.mainText + "'s";
                         } else {
                             if (word.genderText === "he") {
-                                return "his";
+                                t = "his";
                             } else {
-                                return "her";
+                                t = "her";
                             }
                         }
                     }
@@ -428,24 +441,34 @@ module Told.CommonCoreMathProblems {
                     }
 
                     if (shouldShowSingular) {
-                        return word.mainText;
+                        t = word.mainText;
                     } else {
                         if (word.pluralText === "") {
-                            return word.mainText;
+                            t = word.mainText;
                         } else if (word.pluralText === "s") {
-                            return word.mainText + "s";
+                            t = word.mainText + "s";
                         } else if (word.pluralText === "es") {
-                            return word.mainText + "es";
+                            t = word.mainText + "es";
                         } else {
-                            return word.pluralText;
+                            t = word.pluralText;
                         }
                     }
                 }
 
-                return word.mainText;
+                if (t === "") {
+                    t = word.mainText;
+                }
+
+                if (modifier.capitalOption === CapitalOption.Capitalize) {
+                    t = t.substr(0, 1).toUpperCase() + t.substr(1);
+                }
+
+                return t;
             };
 
-            sample.references.forEach(function (ref) {
+            var referenceValues: ISampleInstanceValue[] = [];
+
+            sample.references.forEach(function (ref, iRef, refs) {
 
                 var mInstance = sample.instances.filter(function (instance) {
                     return instance.type.name === ref.name && instance.instanceModKey === ref.modifier.instanceModKey
@@ -463,27 +486,23 @@ module Told.CommonCoreMathProblems {
                     sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: "" + instance.value.chosenNumberValue, possibleValuesDebug: instance.value.possibleValuesDebug };
                 } else {
                     // DEBUG: Use the raw Text for the text before getting the actual text for the modification
-                    sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: instance.value.chosenWord.rawText, possibleValuesDebug: instance.value.possibleValuesDebug };
+                    // sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: instance.value.chosenWord.rawText, possibleValuesDebug: instance.value.possibleValuesDebug };
+
+                    // Get preceeding number
+                    // Get preceeding name
+                    var numValues = referenceValues.slice(referenceValues.length - 2).filter(function (rv) { return rv.valueType === SampleValueType.numberValue; });
+                    var nameValues = referenceValues.filter(function (rv) { return rv.valueType === SampleValueType.nameValue; });
+
+                    var preceedingNumber: number = numValues.length > 0 ? numValues[numValues.length - 1].chosenNumberValue : 1;
+                    var preceedingName: string = nameValues.length > 0 ? nameValues[nameValues.length - 1].chosenWord.mainText : "";
+
+                    var textValue = getModifiedWordText(instance.value.chosenWord, ref.modifier, preceedingName, preceedingNumber);
+
+                    sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: textValue, possibleValuesDebug: instance.value.possibleValuesDebug };
                 }
+
+                referenceValues.push(instance.value);
             });
-
-            //// Get preceeding number
-            //// Get preceeding name
-            //var numValues = curValues.slice(curValues.length - 2).filter(function (v3) { return v3.value.numberValue != null; });
-            //var nameValues = curValues.filter(function (v3) { return v3.value.isName; });
-
-            //var preceedingNumber: number = numValues.length > 0 ? numValues[numValues.length - 1].value.numberValue : 1;
-            //var preceedingName: string = nameValues.length > 0 ? nameValues[nameValues.length - 1].value.chosenWord.mainText : "";
-
-            //var mSameText = mSameReference.filter(function (curInstance) { return curInstance.modifier.idText === modifier.idText; });
-
-            //if (mSameText.length > 0) {
-            //    textValue = mSameText[0].value.textValue;
-            //    chosenWordGroup = mSameText[0].value.chosenWordGroup;
-            //    chosenWord = mSameText[0].value.chosenWord;
-            //} else
-            //textValue = getModifiedWordText(mSameReference[0].value.chosenWord, modifier, preceedingName, preceedingNumber);
-            //textValue = getModifiedWordText(chosenWord, modifier, preceedingName, preceedingNumber);
 
         }
 
@@ -676,7 +695,7 @@ module Told.CommonCoreMathProblems {
                 });
             }
 
-            return { references:sampleSet.references, sortedReferences:refs, instances: instances, expressions: {} };
+            return { references: sampleSet.references, sortedReferences: refs, instances: instances, expressions: {} };
         }
 
         static createSampleSet(problem: IProblem): ISampleSet {
@@ -749,7 +768,7 @@ module Told.CommonCoreMathProblems {
                 }
 
                 var m = refText.match(regexReference);
-                var name = m[1];
+                var name = m[1].toLowerCase();
 
                 var tag = parseInt(m[2] || "0");
                 var partOfSpeechOption =
@@ -762,12 +781,16 @@ module Told.CommonCoreMathProblems {
                     m[3] === "+s" ? SingularOption.forcePlural :
                     SingularOption.matchNumber;
 
+                var firstLetterOfName = m[1][0];
+                var capitalOption =
+                    firstLetterOfName.toUpperCase() === firstLetterOfName ? CapitalOption.Capitalize : CapitalOption.DontCapitalize;
+
                 var instanceModKey = "" + tag;
                 var referenceModKey = tag + ";pos=" + partOfSpeechOption + ";s=" + singularOption;
 
                 var modifier: IModifier = {
                     instanceModKey: instanceModKey, referenceModKey: referenceModKey,
-                    tag: tag, partOfSpeechOption: partOfSpeechOption, singularOption: singularOption
+                    tag: tag, partOfSpeechOption: partOfSpeechOption, singularOption: singularOption, capitalOption: capitalOption
                 };
 
                 return { referenceID: referenceID, rawText: refText, name: name, modifier: modifier, variableType: null };
@@ -933,7 +956,7 @@ module Told.CommonCoreMathProblems {
                 }
 
                 var parts = line.split("=");
-                var name = parts[0].trim();
+                var name = parts[0].trim().toLowerCase();
                 var valueText = parts[1].trim();
 
                 var value = parseValue(valueText);
@@ -945,8 +968,8 @@ module Told.CommonCoreMathProblems {
         }
 
 
-        static getRandomInt(minValue: number, maxValue: number): number {
-            return Math.floor(minValue + Math.random() * (maxValue - minValue));
+        static getRandomInt(minimum: number, maximum: number): number {
+            return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
         }
     }
 

@@ -24,6 +24,16 @@
             <h1>Common Core Math Problems</h1>
         </div>
         <div id="content" data-role="content">
+
+            <div data-bind="foreach: problems">
+                <div style="background: white; margin: 3px; padding:10px; color: black;">
+                    <h3>Question</h3>
+                    <span data-bind="html: question"></span>
+                    <h3>Answer</h3>
+                    <span data-bind="html: answer"></span>
+                </div>
+            </div>
+
         </div>
         <div data-role="footer" class="footer">
             <h4>&copy; Told - Rick & Matthew Love - 2014</h4>

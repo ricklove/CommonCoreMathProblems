@@ -59,14 +59,30 @@
 
 #### 6:00-7:40
 #### 11:00-11:30
-#### 15:10-
+#### 15:10-17:45
 
-- getModifiedWordText
+- Started: getModifiedWordText
+- BUG: Variables are evaluated in order of definition (not in order of text, therefore the preceeding values references must be found before re-ordering)
+- Restructure logic to better create problem instances
+
+### 2014-05-13
+
+#### 6:05-6:35
+
+- Display problems in html
+
+#### 6:35-6:55
+
+- getModifiedWordText (reintroduce logic)
+
+#### 6:55-7:00
+#### 7:10-7:20
+
+- Capitalize
+
 
 #### FUTURE
 
-	- BUG: Variables are evaluated in order of definition (not in order of text, therefore the preceeding values references must be found before re-ordering)
-
-- Display problems in html
-- Handle to || of the problemText
-- Generate sample problems
+- Fix problems (force plural)
+- Handle || in the problemText
+- Generate final sample problems
