@@ -80,9 +80,13 @@
 
 - Capitalize
 
+#### 14:20-15:00
 
-#### FUTURE
+- Keep main name at beginning of each line (to also handle pronouns in option phrases)
 
-- Fix problems (force plural)
+#### 15:15-15:40
+
 - Handle || in the problemText
 - Generate final sample problems
+
+#### FUTURE

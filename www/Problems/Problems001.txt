@@ -1,16 +1,61 @@
 ﻿# OA Domain
 
-## 1.OA
+## Jokes
 
 VARIABLES:
-x = [0,20]
-y = [0,20]
+x = [1,20]
+y = [1,20]
 sum = x+y [0,20]
 
 name = {Matthew<he>, Lydia<she>, Emily<she>, Caleb<he>}
-obj = {ball(s), car(s)}
-adj = {red, blue, green; big, small}
-bag = {box(es), bag(s), sack(s)}
+
+### Violent
+
+VARIABLES:
+obj = {bomb(s), gun(s), sword(s), knife(knives)}
+adj = {dangerous, wimpy}
+bag = {bunker, warehouse, base}
+
+#### Qs
+
+QUESTION:
+{Name} had {x} {obj}. {Name} got some more {obj+s} for {name's} birthday. Then, {name} had {sum} {obj} altogether. How many {obj+s} did {name} get for {name's} birthday?
+|| {Name} had {x} {obj} in a {bag-s}. {Name} put some more {obj+s} in the {bag-s}. Then, {name} had {sum} {obj} in the {bag-s} altogether. How many {obj+s} did {name} put in the {bag-s}?
+|| The police found {name} with {x} {obj}. When they searched {name's} {bag-s}, they found some more {obj+s}. They cataloged {sum} {obj} at the police station altogether. How many {obj+s} did {name} have in {name's} {bag-s}?
+|| {Name} made {x} {obj} yesterday. {Name} made some more {obj+s} today. Now, {name} has {sum} {obj}. How many {obj+s} did {name} make today?
+
+ANSWER:
+{y} {obj}
+
+### Baking
+
+VARIABLES:
+obj = {cake(s), bun(s), loaf(loaves), biscuit(s), cookie(s), donut(s)}
+adj = {chocolate, strawberry, blueberry, vanilla}
+bag = {kitchen, diningRoom, bunker, patio}
+
+#### Qs
+
+QUESTION:
+{Name} had {x} {obj}. {Name} got some more {obj+s} for {name's} birthday. Then, {name} had {sum} {obj} altogether. How many {obj+s} did {name} get for {name's} birthday?
+|| {Name} had {x} {obj} in a {bag-s}. {Name} put some more {obj+s} in the {bag-s}. Then, {name} had {sum} {obj} in the {bag-s} altogether. How many {obj+s} did {name} put in the {bag-s}?
+|| The police found {name} with {x} {obj}. When they searched {name's} {bag-s}, they found some more {obj+s}. They cataloged {sum} {obj} at the police station altogether. How many {obj+s} did {name} have in {name's} {bag-s}?
+|| {Name} made {x} {obj} yesterday. {Name} made some more {obj+s} today. Now, {name} has {sum} {obj}. How many {obj+s} did {name} make today?
+
+ANSWER:
+{y} {obj}
+
+## 1.OA
+
+VARIABLES:
+x = [1,20]
+y = [1,20]
+sum = x+y [0,20]
+
+name = {Matthew<he>, Lydia<she>, Emily<she>, Caleb<he>}
+obj = {ball(s), car(s), toy(s), pencil(s), pen(s), crayon(s), marker(s)}
+adj = {red, blue, green, yellow, black, white, purple, brown, orange; big, small; giant, tiny }
+bag = {box(es), bag(s), toybox(es), backpack(s) }
 
 var = {x,y,a,b}
 
@@ -43,8 +88,8 @@ ANSWER:
 ##### Unknown Sum
 
 QUESTION:
-{Name} had {x} {obj}. {Name} got {y} more {obj}. How many {obj} does {name} have now?
-|| {Name} had {x} {obj} in a {bag-s}. {Name} put {y} more {obj} in the {bag-s}. How many {obj} are in the {bag-s} now.
+{Name} had {x} {obj}. {Name} got {y} more {obj}. How many {obj+s} does {name} have now?
+|| {Name} had {x} {obj} in a {bag-s}. {Name} put {y} more {obj} in the {bag-s}. How many {obj+s} are in the {bag-s} now.
 
 ANSWER:
 {sum} {obj}
@@ -52,8 +97,8 @@ ANSWER:
 ##### Unknown Start
 
 QUESTION:
-{name} had some {obj}. {name} got {y} more {obj} for {name's} birthday. Then, {name} had {sum} {obj} altogether. How many {obj} did {name} have at the start?
-|| {name} had some {obj} in a {bag}. {name} put {y} more {obj} in the {bag}. Then, {name} had {sum} {obj} in the {bag} altogether. How many {obj} did {name} have in the {bag} at the start?
+{Name} had some {obj+s}. {Name} got {y} more {obj} for {name's} birthday. Then, {name} had {sum} {obj} altogether. How many {obj+s} did {name} have at the start?
+|| {Name} had some {obj+s} in a {bag-s}. {Name} put {y} more {obj} in the {bag-s}. Then, {name} had {sum} {obj} in the {bag-s} altogether. How many {obj+s} did {name} have in the {bag-s} at the start?
 
 ANSWER:
 {x} {obj}
@@ -61,8 +106,8 @@ ANSWER:
 ##### Unknown Change
 
 QUESTION:
-{name} had {x} {obj}. He got some more {obj} for {name's} birthday. Then, he had {sum} {obj} altogether. How many {obj} did he start with?
-|| {name} had {x} {obj} in a {bag}. He put some more {obj} in the {bag}. Then, he had {sum} {obj} in the {bag} altogether. How many {obj} did he put in the {bag}?
+{Name} had {x} {obj}. {Name} got some more {obj+s} for {name's} birthday. Then, {name} had {sum} {obj} altogether. How many {obj+s} did {name} get for {name's} birthday?
+|| {Name} had {x} {obj} in a {bag-s}. {Name} put some more {obj+s} in the {bag-s}. Then, {name} had {sum} {obj} in the {bag-s} altogether. How many {obj+s} did {name} put in the {bag-s}?
 
 ANSWER:
 {y} {obj}
@@ -71,7 +116,7 @@ ANSWER:
 #### Putting Together
 
 QUESTION:
-{name} had {x} {adj1} {obj} and {y} {adj2} {obj}. How many {obj} does he have altogether?
+{Name} had {x} {adj1} {obj} and {y} {adj2} {obj}. How many {obj+s} does {name} have altogether?
 
 ANSWER:
 {sum} {obj}
@@ -87,7 +132,7 @@ ANSWER:
 ### 1.0A.A.2
 
 VARIABLES:
-z = [0,20]
+z = [1,20]
 sumTri = x+y+z [0,20]
 
 #### Equation

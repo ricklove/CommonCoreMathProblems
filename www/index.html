@@ -26,11 +26,14 @@
         <div id="content" data-role="content">
 
             <div data-bind="foreach: problems">
-                <div style="background: white; margin: 3px; padding:10px; color: black;">
+                <div style="background: white; margin: 3px; padding: 10px; color: black;">
+                    <!-- ko if: id -->
+                    <h3>Problem <span data-bind="text: id"></span></h3>
+                    <!-- /ko -->
                     <h3>Question</h3>
                     <span data-bind="html: question"></span>
                     <h3>Answer</h3>
-                    <span data-bind="html: answer"></span>
+                    <span data-bind="html: answer" style="color: white"></span>
                 </div>
             </div>
 

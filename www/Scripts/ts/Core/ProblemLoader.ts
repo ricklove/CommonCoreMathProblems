@@ -92,6 +92,7 @@ module Told.CommonCoreMathProblems {
     export interface IReference {
         rawText: string;
         referenceID: number;
+        lineNumber: number;
         name: string;
         modifier: IModifier;
 
@@ -382,6 +383,54 @@ module Told.CommonCoreMathProblems {
                     }
                 });
 
+                // Choose the line options
+                if (!isDebug) {
+                    var lines = t.split("\r\n");
+                    var simpleT = "";
+
+                    var lastLine = "";
+                    var lineGroup: string[] = [];
+
+                    // Add a blank line at end to simplify logic
+                    lines.push("");
+                    lines.push("");
+
+                    for (var iLine = 0; iLine < lines.length; iLine++) {
+                        var curLine = lines[iLine];
+
+                        if (curLine.indexOf("|| ") === 0) {
+                            if (lineGroup.length === 0) {
+                                lineGroup.push(lastLine);
+                            }
+
+                            lineGroup.push(curLine);
+                        } else {
+
+                            if (lineGroup.length > 0) {
+                                var rLine = ProblemLoader.getRandomInt(0, lineGroup.length - 1);
+
+                                var lineToUse = lineGroup[rLine];
+
+                                if (lineToUse.indexOf("|| ") === 0) {
+                                    lineToUse = lineToUse.substr(3);
+                                } 
+
+                                simpleT += lineToUse + "\r\n";
+
+                                lineGroup = [];
+
+                            } else {
+                                simpleT += lastLine;
+                            }
+
+                        }
+
+                        lastLine = curLine;
+                    }
+
+                    t = simpleT.trim();
+                }
+
                 return t;
             };
 
@@ -466,7 +515,7 @@ module Told.CommonCoreMathProblems {
                 return t;
             };
 
-            var referenceValues: ISampleInstanceValue[] = [];
+            var referenceValues: { reference: IReference; value: ISampleInstanceValue }[] = [];
 
             sample.references.forEach(function (ref, iRef, refs) {
 
@@ -490,18 +539,23 @@ module Told.CommonCoreMathProblems {
 
                     // Get preceeding number
                     // Get preceeding name
-                    var numValues = referenceValues.slice(referenceValues.length - 2).filter(function (rv) { return rv.valueType === SampleValueType.numberValue; });
-                    var nameValues = referenceValues.filter(function (rv) { return rv.valueType === SampleValueType.nameValue; });
+                    var numValues = referenceValues.slice(referenceValues.length - 2).filter(function (rv) { return rv.value.valueType === SampleValueType.numberValue; });
+                    var nameValues = referenceValues.filter(function (rv) { return rv.value.valueType === SampleValueType.nameValue; });
 
-                    var preceedingNumber: number = numValues.length > 0 ? numValues[numValues.length - 1].chosenNumberValue : 1;
-                    var preceedingName: string = nameValues.length > 0 ? nameValues[nameValues.length - 1].chosenWord.mainText : "";
+                    // Must be on same line
+                    numValues = numValues.filter((rv) => rv.reference.lineNumber === ref.lineNumber);
+                    nameValues = nameValues.filter((rv) => rv.reference.lineNumber === ref.lineNumber);
+
+                    // Get preceeding
+                    var preceedingNumber: number = numValues.length > 0 ? numValues[numValues.length - 1].value.chosenNumberValue : 1;
+                    var preceedingName: string = nameValues.length > 0 ? nameValues[nameValues.length - 1].value.chosenWord.mainText : "";
 
                     var textValue = getModifiedWordText(instance.value.chosenWord, ref.modifier, preceedingName, preceedingNumber);
 
                     sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: textValue, possibleValuesDebug: instance.value.possibleValuesDebug };
                 }
 
-                referenceValues.push(instance.value);
+                referenceValues.push({ reference: ref, value: instance.value });
             });
 
         }
@@ -647,11 +701,13 @@ module Told.CommonCoreMathProblems {
             var sampleSetDebug = sampleSet;
             var instances: ISampleInstance[] = [];
             var hasError = true;
+            var attempts = 0;
 
-            while (hasError) {
+            while (hasError && attempts < 25) {
 
                 instances = [];
                 hasError = false;
+                attempts++;
 
                 var unsortedRefs = sampleSet.references.slice(0);
 
@@ -759,9 +815,9 @@ module Told.CommonCoreMathProblems {
             var rpStart = "(?:" + rpCaptureBeginBeforeBraces + "|" + rpCaptureBeginInsideBraces + ")";
             var regexStart = new RegExp(rpStart);
 
-            var regexReference = /^([0-9a-zA-z]*[a-zA-z])([0-9]+)?('s|\\+s|-s|\\?s|@)?$/;
+            var regexReference = /^([0-9a-zA-z]*[a-zA-z])([0-9]+)?('s|\+s|-s|\?s|@)?$/;
 
-            var parseReference = function (referenceID: number, refText: string): IReference {
+            var parseReference = function (referenceID: number, lineNumber: number, refText: string): IReference {
 
                 if (refText === "") {
                     return null;
@@ -793,16 +849,31 @@ module Told.CommonCoreMathProblems {
                     tag: tag, partOfSpeechOption: partOfSpeechOption, singularOption: singularOption, capitalOption: capitalOption
                 };
 
-                return { referenceID: referenceID, rawText: refText, name: name, modifier: modifier, variableType: null };
+                return { referenceID: referenceID, lineNumber: lineNumber, rawText: refText, name: name, modifier: modifier, variableType: null };
             };
 
             var problemText: IProblemText = { rawText: text, phrases: [] };
             var t = text.trim();
             var m = t.match(regexStart);
 
+            var lineNumber = 0;
+
             while (m) {
 
-                problemText.phrases.push({ plainText: m[1] || "", reference: parseReference(ProblemLoader.nextReferenceID, m[2] || "") });
+                var plainText = m[1] || "";
+                var ref = parseReference(ProblemLoader.nextReferenceID, lineNumber, m[2] || "");
+
+                // Increment line number
+                var iText = plainText.indexOf("\r\n", 0);
+
+                while (iText >= 0) {
+                    lineNumber++;
+                    iText = plainText.indexOf("\r\n", iText + 1);
+                }
+
+                // create phrase
+                problemText.phrases.push({ plainText: plainText, reference: ref });
+
 
                 var capturedPart = m[1] || ("{" + m[2] + "}");
                 t = t.substr(capturedPart.length);

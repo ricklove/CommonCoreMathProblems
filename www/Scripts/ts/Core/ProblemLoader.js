@@ -238,6 +238,51 @@ var Told;
                         }
                     });
 
+                    // Choose the line options
+                    if (!isDebug) {
+                        var lines = t.split("\r\n");
+                        var simpleT = "";
+
+                        var lastLine = "";
+                        var lineGroup = [];
+
+                        // Add a blank line at end to simplify logic
+                        lines.push("");
+                        lines.push("");
+
+                        for (var iLine = 0; iLine < lines.length; iLine++) {
+                            var curLine = lines[iLine];
+
+                            if (curLine.indexOf("|| ") === 0) {
+                                if (lineGroup.length === 0) {
+                                    lineGroup.push(lastLine);
+                                }
+
+                                lineGroup.push(curLine);
+                            } else {
+                                if (lineGroup.length > 0) {
+                                    var rLine = ProblemLoader.getRandomInt(0, lineGroup.length - 1);
+
+                                    var lineToUse = lineGroup[rLine];
+
+                                    if (lineToUse.indexOf("|| ") === 0) {
+                                        lineToUse = lineToUse.substr(3);
+                                    }
+
+                                    simpleT += lineToUse + "\r\n";
+
+                                    lineGroup = [];
+                                } else {
+                                    simpleT += lastLine;
+                                }
+                            }
+
+                            lastLine = curLine;
+                        }
+
+                        t = simpleT.trim();
+                    }
+
                     return t;
                 };
 
@@ -343,21 +388,30 @@ var Told;
                         // Get preceeding number
                         // Get preceeding name
                         var numValues = referenceValues.slice(referenceValues.length - 2).filter(function (rv) {
-                            return rv.valueType === 0 /* numberValue */;
+                            return rv.value.valueType === 0 /* numberValue */;
                         });
                         var nameValues = referenceValues.filter(function (rv) {
-                            return rv.valueType === 1 /* nameValue */;
+                            return rv.value.valueType === 1 /* nameValue */;
                         });
 
-                        var preceedingNumber = numValues.length > 0 ? numValues[numValues.length - 1].chosenNumberValue : 1;
-                        var preceedingName = nameValues.length > 0 ? nameValues[nameValues.length - 1].chosenWord.mainText : "";
+                        // Must be on same line
+                        numValues = numValues.filter(function (rv) {
+                            return rv.reference.lineNumber === ref.lineNumber;
+                        });
+                        nameValues = nameValues.filter(function (rv) {
+                            return rv.reference.lineNumber === ref.lineNumber;
+                        });
+
+                        // Get preceeding
+                        var preceedingNumber = numValues.length > 0 ? numValues[numValues.length - 1].value.chosenNumberValue : 1;
+                        var preceedingName = nameValues.length > 0 ? nameValues[nameValues.length - 1].value.chosenWord.mainText : "";
 
                         var textValue = getModifiedWordText(instance.value.chosenWord, ref.modifier, preceedingName, preceedingNumber);
 
                         sample.expressions[ref.referenceID] = { referenceID: ref.referenceID, text: textValue, possibleValuesDebug: instance.value.possibleValuesDebug };
                     }
 
-                    referenceValues.push(instance.value);
+                    referenceValues.push({ reference: ref, value: instance.value });
                 });
             };
 
@@ -492,10 +546,12 @@ var Told;
                 var sampleSetDebug = sampleSet;
                 var instances = [];
                 var hasError = true;
+                var attempts = 0;
 
-                while (hasError) {
+                while (hasError && attempts < 25) {
                     instances = [];
                     hasError = false;
+                    attempts++;
 
                     var unsortedRefs = sampleSet.references.slice(0);
 
@@ -596,9 +652,9 @@ var Told;
                 var rpStart = "(?:" + rpCaptureBeginBeforeBraces + "|" + rpCaptureBeginInsideBraces + ")";
                 var regexStart = new RegExp(rpStart);
 
-                var regexReference = /^([0-9a-zA-z]*[a-zA-z])([0-9]+)?('s|\\+s|-s|\\?s|@)?$/;
+                var regexReference = /^([0-9a-zA-z]*[a-zA-z])([0-9]+)?('s|\+s|-s|\?s|@)?$/;
 
-                var parseReference = function (referenceID, refText) {
+                var parseReference = function (referenceID, lineNumber, refText) {
                     if (refText === "") {
                         return null;
                     }
@@ -622,15 +678,29 @@ var Told;
                         tag: tag, partOfSpeechOption: partOfSpeechOption, singularOption: singularOption, capitalOption: capitalOption
                     };
 
-                    return { referenceID: referenceID, rawText: refText, name: name, modifier: modifier, variableType: null };
+                    return { referenceID: referenceID, lineNumber: lineNumber, rawText: refText, name: name, modifier: modifier, variableType: null };
                 };
 
                 var problemText = { rawText: text, phrases: [] };
                 var t = text.trim();
                 var m = t.match(regexStart);
 
+                var lineNumber = 0;
+
                 while (m) {
-                    problemText.phrases.push({ plainText: m[1] || "", reference: parseReference(ProblemLoader.nextReferenceID, m[2] || "") });
+                    var plainText = m[1] || "";
+                    var ref = parseReference(ProblemLoader.nextReferenceID, lineNumber, m[2] || "");
+
+                    // Increment line number
+                    var iText = plainText.indexOf("\r\n", 0);
+
+                    while (iText >= 0) {
+                        lineNumber++;
+                        iText = plainText.indexOf("\r\n", iText + 1);
+                    }
+
+                    // create phrase
+                    problemText.phrases.push({ plainText: plainText, reference: ref });
 
                     var capturedPart = m[1] || ("{" + m[2] + "}");
                     t = t.substr(capturedPart.length);
