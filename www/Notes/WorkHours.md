@@ -89,4 +89,8 @@
 - Handle || in the problemText
 - Generate final sample problems
 
+#### 17:30-18:00
+
+- Calculate a value for each variable: This is for the case where it is not referenced in the text: x+y=m+_  (Sum not referred)
+
 #### FUTURE

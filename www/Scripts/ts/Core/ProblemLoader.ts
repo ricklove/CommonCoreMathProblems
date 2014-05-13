@@ -183,6 +183,7 @@ module Told.CommonCoreMathProblems {
         private static loadProblemFiles(onLoaded: (text: string) => void, onError?: (text: string) => void) {
 
             var filename = "Problems001.txt";
+            //var filename2 = "Problems001.txt";
 
             var url = this.baseUrl + "Problems/" + filename;
 
@@ -413,7 +414,7 @@ module Told.CommonCoreMathProblems {
 
                                 if (lineToUse.indexOf("|| ") === 0) {
                                     lineToUse = lineToUse.substr(3);
-                                } 
+                                }
 
                                 simpleT += lineToUse + "\r\n";
 
@@ -716,15 +717,16 @@ module Told.CommonCoreMathProblems {
 
                 scope.allVariables.forEach(function (v) {
 
+                    var wasRefAdded = false;
                     var uMatching = unsortedRefs.filter(function (u) { return u.name === v.name; });
 
                     uMatching.forEach(function (u) {
                         var i = unsortedRefs.indexOf(u);
                         if (i >= 0) {
                             refs.push(unsortedRefs.splice(i, 1)[0]);
+                            wasRefAdded = true;
                         }
                     });
-
                 });
 
                 refs.forEach(function (r) {
@@ -761,8 +763,19 @@ module Told.CommonCoreMathProblems {
             // Find all references (reference)
             // Identify each variable type in the references (variable -> type)
 
+            // Create fake refs for all numeric variables in scope
+            var allVarText = "";
+
+            problem.scope.allVariables.forEach((v) => {
+                if (v.value.wordSet === null) {
+                    allVarText += "{" +v.name + "}";
+                }
+            });
+
+            var fakePhrases = ProblemLoader.parseProblemText( allVarText ).phrases;
+
             // Find the type of each reference
-            problem.question.phrases.concat(problem.answer.phrases).forEach(function (p) {
+            problem.question.phrases.concat(problem.answer.phrases).concat(fakePhrases).forEach(function (p) {
                 if (p.reference !== null) {
 
                     var matching = problem.scope.allVariables.filter(function (v) { return v.name === p.reference.name; });

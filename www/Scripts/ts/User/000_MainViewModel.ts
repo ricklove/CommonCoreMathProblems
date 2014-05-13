@@ -39,7 +39,8 @@ module Told.CommonCoreMathProblems.UI {
                         question: pi.question
                             .replace(/\r\n/g, "<br/>"),
                         answer: pi.answer
-                            .replace(/\r\n/g, "<br/>")
+                            .replace(/\r\n/g, "<br/>"),
+                        //scope: p.scope.contexts
                     });
 
                     id++;

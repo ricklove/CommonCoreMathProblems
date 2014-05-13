@@ -1,0 +1,68 @@
+﻿# OA Domain
+
+## Jokes
+
+### Matthew
+
+VARIABLES:
+x = [1,20]
+y = [1,20]
+product = x*y
+
+var = {x,y,z,A,B,C}
+
+QUESTION:
+What is the value of {var}? 
+|| Find the value of {var}:
+
+{x} * {var} = {product}
+|| {var} * {x} = {product}
+
+ANSWER:
+{y}
+
+## Other Jokes
+
+VARIABLES:
+x = [1,20]
+y = [1,20]
+sum = x+y [0,20]
+
+name = {Matthew<he>, Lydia<she>, Emily<she>, Caleb<he>}
+
+### Violent
+
+VARIABLES:
+obj = {bomb(s), gun(s), sword(s), knife(knives)}
+adj = {dangerous, wimpy}
+bag = {bunker, warehouse, base}
+
+#### Qs
+
+QUESTION:
+{Name} had {x} {obj}. {Name} got some more {obj+s} for {name's} birthday. Then, {name} had {sum} {obj} altogether. How many {obj+s} did {name} get for {name's} birthday?
+|| {Name} had {x} {obj} in a {bag-s}. {Name} put some more {obj+s} in the {bag-s}. Then, {name} had {sum} {obj} in the {bag-s} altogether. How many {obj+s} did {name} put in the {bag-s}?
+|| The police found {name} with {x} {obj}. When they searched {name's} {bag-s}, they found some more {obj+s}. They cataloged {sum} {obj} at the police station altogether. How many {obj+s} did {name} have in {name's} {bag-s}?
+|| {Name} made {x} {obj} yesterday. {Name} made some more {obj+s} today. Now, {name} has {sum} {obj}. How many {obj+s} did {name} make today?
+
+ANSWER:
+{y} {obj}
+
+### Baking
+
+VARIABLES:
+obj = {cake(s), bun(s), loaf(loaves), biscuit(s), cookie(s), donut(s)}
+adj = {chocolate, strawberry, blueberry, vanilla}
+bag = {kitchen, diningRoom, bunker, patio}
+
+#### Qs
+
+QUESTION:
+{Name} had {x} {obj}. {Name} got some more {obj+s} for {name's} birthday. Then, {name} had {sum} {obj} altogether. How many {obj+s} did {name} get for {name's} birthday?
+|| {Name} had {x} {obj} in a {bag-s}. {Name} put some more {obj+s} in the {bag-s}. Then, {name} had {sum} {obj} in the {bag-s} altogether. How many {obj+s} did {name} put in the {bag-s}?
+|| The police found {name} with {x} {obj}. When they searched {name's} {bag-s}, they found some more {obj+s}. They cataloged {sum} {obj} at the police station altogether. How many {obj+s} did {name} have in {name's} {bag-s}?
+|| {Name} made {x} {obj} yesterday. {Name} made some more {obj+s} today. Now, {name} has {sum} {obj}. How many {obj+s} did {name} make today?
+
+ANSWER:
+{y} {obj}
+

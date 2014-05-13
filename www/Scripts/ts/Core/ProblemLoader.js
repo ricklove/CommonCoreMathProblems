@@ -52,6 +52,7 @@ var Told;
             ProblemLoader.loadProblemFiles = function (onLoaded, onError) {
                 var filename = "Problems001.txt";
 
+                //var filename2 = "Problems001.txt";
                 var url = this.baseUrl + "Problems/" + filename;
 
                 $.ajax(url, {
@@ -559,6 +560,7 @@ var Told;
                     var refs = [];
 
                     scope.allVariables.forEach(function (v) {
+                        var wasRefAdded = false;
                         var uMatching = unsortedRefs.filter(function (u) {
                             return u.name === v.name;
                         });
@@ -567,6 +569,7 @@ var Told;
                             var i = unsortedRefs.indexOf(u);
                             if (i >= 0) {
                                 refs.push(unsortedRefs.splice(i, 1)[0]);
+                                wasRefAdded = true;
                             }
                         });
                     });
@@ -602,8 +605,19 @@ var Told;
 
                 // Find all references (reference)
                 // Identify each variable type in the references (variable -> type)
+                // Create fake refs for all numeric variables in scope
+                var allVarText = "";
+
+                problem.scope.allVariables.forEach(function (v) {
+                    if (v.value.wordSet === null) {
+                        allVarText += "{" + v.name + "}";
+                    }
+                });
+
+                var fakePhrases = ProblemLoader.parseProblemText(allVarText).phrases;
+
                 // Find the type of each reference
-                problem.question.phrases.concat(problem.answer.phrases).forEach(function (p) {
+                problem.question.phrases.concat(problem.answer.phrases).concat(fakePhrases).forEach(function (p) {
                     if (p.reference !== null) {
                         var matching = problem.scope.allVariables.filter(function (v) {
                             return v.name === p.reference.name;

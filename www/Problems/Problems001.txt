@@ -1,50 +1,5 @@
 ﻿# OA Domain
 
-## Jokes
-
-VARIABLES:
-x = [1,20]
-y = [1,20]
-sum = x+y [0,20]
-
-name = {Matthew<he>, Lydia<she>, Emily<she>, Caleb<he>}
-
-### Violent
-
-VARIABLES:
-obj = {bomb(s), gun(s), sword(s), knife(knives)}
-adj = {dangerous, wimpy}
-bag = {bunker, warehouse, base}
-
-#### Qs
-
-QUESTION:
-{Name} had {x} {obj}. {Name} got some more {obj+s} for {name's} birthday. Then, {name} had {sum} {obj} altogether. How many {obj+s} did {name} get for {name's} birthday?
-|| {Name} had {x} {obj} in a {bag-s}. {Name} put some more {obj+s} in the {bag-s}. Then, {name} had {sum} {obj} in the {bag-s} altogether. How many {obj+s} did {name} put in the {bag-s}?
-|| The police found {name} with {x} {obj}. When they searched {name's} {bag-s}, they found some more {obj+s}. They cataloged {sum} {obj} at the police station altogether. How many {obj+s} did {name} have in {name's} {bag-s}?
-|| {Name} made {x} {obj} yesterday. {Name} made some more {obj+s} today. Now, {name} has {sum} {obj}. How many {obj+s} did {name} make today?
-
-ANSWER:
-{y} {obj}
-
-### Baking
-
-VARIABLES:
-obj = {cake(s), bun(s), loaf(loaves), biscuit(s), cookie(s), donut(s)}
-adj = {chocolate, strawberry, blueberry, vanilla}
-bag = {kitchen, diningRoom, bunker, patio}
-
-#### Qs
-
-QUESTION:
-{Name} had {x} {obj}. {Name} got some more {obj+s} for {name's} birthday. Then, {name} had {sum} {obj} altogether. How many {obj+s} did {name} get for {name's} birthday?
-|| {Name} had {x} {obj} in a {bag-s}. {Name} put some more {obj+s} in the {bag-s}. Then, {name} had {sum} {obj} in the {bag-s} altogether. How many {obj+s} did {name} put in the {bag-s}?
-|| The police found {name} with {x} {obj}. When they searched {name's} {bag-s}, they found some more {obj+s}. They cataloged {sum} {obj} at the police station altogether. How many {obj+s} did {name} have in {name's} {bag-s}?
-|| {Name} made {x} {obj} yesterday. {Name} made some more {obj+s} today. Now, {name} has {sum} {obj}. How many {obj+s} did {name} make today?
-
-ANSWER:
-{y} {obj}
-
 ## 1.OA
 
 VARIABLES:
@@ -54,10 +9,10 @@ sum = x+y [0,20]
 
 name = {Matthew<he>, Lydia<she>, Emily<she>, Caleb<he>}
 obj = {ball(s), car(s), toy(s), pencil(s), pen(s), crayon(s), marker(s)}
-adj = {red, blue, green, yellow, black, white, purple, brown, orange; big, small; giant, tiny }
+adj = {red, blue, green, yellow, black, white, purple, brown, orange; big, small, giant, tiny }
 bag = {box(es), bag(s), toybox(es), backpack(s) }
 
-var = {x,y,a,b}
+var = {x,y,z,A,B,C}
 
 
 ### 1.0A.A.1
@@ -116,7 +71,7 @@ ANSWER:
 #### Putting Together
 
 QUESTION:
-{Name} had {x} {adj1} {obj} and {y} {adj2} {obj}. How many {obj+s} does {name} have altogether?
+{Name} had {x} {adj1} {obj} and {y} {adj2} {obj}. How many {obj+s} did {name} have altogether?
 
 ANSWER:
 {sum} {obj}
@@ -141,6 +96,17 @@ QUESTION:
 What is the value of {var}? 
 || Find the value of {var}:
 
+{x} + {y} + {z} = {var}
+
+ANSWER:
+{sumTri}
+
+##### All Positions (Beyond Standard)
+
+QUESTION:
+What is the value of {var}? 
+|| Find the value of {var}:
+
 {x} + {var} + {z} = {sumTri}
 || {var} + {x} + {z} = {sumTri}
 || {x} + {z} + {var} = {sumTri}
@@ -148,19 +114,47 @@ What is the value of {var}?
 ANSWER:
 {y}
 
-QUESTION:
-What is the value of {var}? 
-|| Find the value of {var}:
 
-{x} + {y} + {z} = {var}
+#### Adding To
+
+QUESTION:
+{Name} had {x} {obj}. {Name} got {y} more {obj} from {name2}. Then, {name} got {z} more {obj} from {name3}. How many {obj+s} does {name} have now?
+|| {Name} had {x} {obj} in a {bag-s}. {Name} put {y} more {obj} in the {bag-s}. Then, {name} put {y} more {obj} in the {bag-s}. How many {obj+s} are in the {bag-s} now.
 
 ANSWER:
-{sumTri}
+{sumTri} {obj}
 
+#### Putting Together
 
+QUESTION:
+{Name} had {x} {adj1} {obj}, {y} {adj2} {obj}, and {z} {adj3} {obj}. How many {obj+s} did {name} have altogether?
+
+ANSWER:
+{sumTri} {obj}
 
 
 ### 1.0A.B.3
+
+#### Equal Sums
+VARIABLES:
+x = [0,20]
+y = [0,20]
+sum = x+y [0,20]
+m = [0,20]
+n = sum-m [0,20]
+
+QUESTION:
+{x} + {y} = {m} + {var}
+|| {x} + {y} = {var} + {m}
+|| {m} + {var} = {x} + {y} 
+|| {var} + {m} = {x} + {y} 
+
+ANSWER:
+{n}
+
+#### Equal Differences
+
+#### Sum Equal to Difference
 
 ### 1.0A.B.4
 
@@ -176,7 +170,6 @@ Answer:
 ## 3.0A
 ## 4.0A
 ## 5.0A
-
 
 
 
